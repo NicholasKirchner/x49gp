@@ -1,2 +1,4 @@
 sim/CVS*
 *.svn/*
+*.DS_Store/*
+.DS_Store
