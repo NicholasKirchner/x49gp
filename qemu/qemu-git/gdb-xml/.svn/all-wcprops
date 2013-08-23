@@ -1,0 +1,29 @@
+K 25
+svn:wc:ra_dav:version-url
+V 47
+/p/x49gp/code/!svn/ver/10/qemu/qemu-git/gdb-xml
+END
+arm-core.xml
+K 25
+svn:wc:ra_dav:version-url
+V 60
+/p/x49gp/code/!svn/ver/10/qemu/qemu-git/gdb-xml/arm-core.xml
+END
+arm-vfp.xml
+K 25
+svn:wc:ra_dav:version-url
+V 59
+/p/x49gp/code/!svn/ver/10/qemu/qemu-git/gdb-xml/arm-vfp.xml
+END
+arm-vfp3.xml
+K 25
+svn:wc:ra_dav:version-url
+V 60
+/p/x49gp/code/!svn/ver/10/qemu/qemu-git/gdb-xml/arm-vfp3.xml
+END
+arm-neon.xml
+K 25
+svn:wc:ra_dav:version-url
+V 60
+/p/x49gp/code/!svn/ver/10/qemu/qemu-git/gdb-xml/arm-neon.xml
+END

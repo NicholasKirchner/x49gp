@@ -1,0 +1,2411 @@
+/* $Id: ui.c,v 1.34 2008/12/11 12:18:17 ecd Exp $
+ */
+
+#include <unistd.h>
+#include <stdlib.h>
+#include <stdio.h>
+#include <stdarg.h>
+#include <string.h>
+#include <fcntl.h>
+#include <signal.h>
+#include <sys/times.h>
+#include <math.h>
+#include <errno.h>
+
+#include <gtk/gtk.h>
+#include <glib.h>
+#include <cairo.h>
+
+#include <x49gp.h>
+#include <x49gp_ui.h>
+#include <s3c2410.h>
+#include <bitmaps.h>
+#include <bitmap_font.h>
+#include <symbol.h>
+#include <glyphname.h>
+
+#include <gdk/gdkkeysyms.h>
+
+#if defined(__linux__)
+#define X49GP_UI_NORMAL_FONT	"urw gothic l"
+#else
+#define X49GP_UI_NORMAL_FONT	"Century Gothic"
+#endif
+
+
+static const x49gp_ui_key_t x49gp_ui_keys[] =
+{
+	{
+		"F1",	"A",	"Y=",	NULL,	NULL,
+		UI_COLOR_BLACK,	12.0, CAIRO_FONT_WEIGHT_BOLD,
+		UI_SHAPE_BUTTON_TINY, 12.0, UI_LAYOUT_LEFT,
+		  0,   0, 36, 22, 5, 1, (1 << 5), (1 << 1), 1
+	},
+	{
+		"F2",	"B",	"WIN",	NULL,	NULL,
+		UI_COLOR_BLACK,	12.0, CAIRO_FONT_WEIGHT_BOLD,
+		UI_SHAPE_BUTTON_TINY, 12.0, UI_LAYOUT_LEFT,
+		 50,   0, 36, 22, 5, 2, (1 << 5), (1 << 2), 2
+	},
+	{
+		"F3",	"C",	"GRAPH",	NULL,	NULL,
+		UI_COLOR_BLACK,	12.0, CAIRO_FONT_WEIGHT_BOLD,
+		UI_SHAPE_BUTTON_TINY, 12.0, UI_LAYOUT_LEFT,
+		 99,   0, 36, 22, 5, 3, (1 << 5), (1 << 3), 3
+	},
+	{
+		"F4",	"D",	"2D/3D",	NULL,	NULL,
+		UI_COLOR_BLACK,	12.0, CAIRO_FONT_WEIGHT_BOLD,
+		UI_SHAPE_BUTTON_TINY, 12.0, UI_LAYOUT_LEFT,
+		149,   0, 36, 22, 5, 4, (1 << 5), (1 << 4), 4
+	},
+	{
+		"F5",	"E",	"TBLSET",	NULL,	NULL,
+		UI_COLOR_BLACK,	12.0, CAIRO_FONT_WEIGHT_BOLD,
+		UI_SHAPE_BUTTON_TINY, 12.0, UI_LAYOUT_LEFT,
+		198,   0, 36, 22, 5, 5, (1 << 5), (1 << 5), 5
+	},
+	{
+		"F6",	"F",	"TABLE",	NULL,	NULL,
+		UI_COLOR_BLACK,	12.0, CAIRO_FONT_WEIGHT_BOLD,
+		UI_SHAPE_BUTTON_TINY, 12.0, UI_LAYOUT_LEFT,
+		247,   0, 36, 22, 5, 6, (1 << 5), (1 << 6), 6
+	},
+	{
+		"APPS",	"G",	"FILES",	"BEGIN",	NULL,
+		UI_COLOR_WHITE, 10.0, CAIRO_FONT_WEIGHT_BOLD,
+		UI_SHAPE_BUTTON_SMALL, 10.0, UI_LAYOUT_BELOW,
+		  0,  44, 36, 28, 5, 7, (1 << 5), (1 << 7), 7
+	},
+	{
+		"MODE",	"H",	"CUSTOM",	"END",	NULL,
+		UI_COLOR_WHITE, 10.0, CAIRO_FONT_WEIGHT_BOLD,
+		UI_SHAPE_BUTTON_SMALL, 10.0, UI_LAYOUT_BELOW,
+		 50,  44, 36, 28, 6, 5, (1 << 6), (1 << 5), 5
+	},
+	{
+		"TOOL",	"I",	"i",	"I",	NULL,
+		UI_COLOR_WHITE, 10.0, CAIRO_FONT_WEIGHT_BOLD,
+		UI_SHAPE_BUTTON_SMALL, 10.0, UI_LAYOUT_BELOW,
+		 99,  44, 36, 28, 6, 6, (1 << 6), (1 << 6), 6
+	},
+	{
+		"V\\kern-1 AR",	"J",	"UPDIR",	"COPY",	NULL,
+		UI_COLOR_WHITE, 10.0, CAIRO_FONT_WEIGHT_BOLD,
+		UI_SHAPE_BUTTON_SMALL, 10.0, UI_LAYOUT_BELOW,
+		  0,  92, 36, 28, 6, 7, (1 << 6), (1 << 7), 7
+	},
+	{
+		"STO \\triangleright",	"K",	"RCL",	"CUT",	NULL,
+		UI_COLOR_WHITE, 10.0, CAIRO_FONT_WEIGHT_BOLD,
+		UI_SHAPE_BUTTON_SMALL, 10.0, UI_LAYOUT_BELOW,
+		 50,  92, 36, 28, 7, 1, (1 << 7), (1 << 1), 1
+	},
+	{
+		"NXT",	"L",	"PREV",	"PASTE",	NULL,
+		UI_COLOR_WHITE, 10.0, CAIRO_FONT_WEIGHT_BOLD,
+		UI_SHAPE_BUTTON_SMALL, 10.0, UI_LAYOUT_BELOW,
+		 99,  92, 36, 28, 7, 2, (1 << 7), (1 << 2), 2
+	},
+	{
+		NULL,	NULL,	NULL,	NULL,	NULL,
+		UI_COLOR_SILVER, 0.0, 0,
+		UI_SHAPE_BUTTON_ROUND, 0.0, 0,
+		200,  38, 33, 33, 6, 1, (1 << 6), (1 << 1), 1
+	},
+	{
+		NULL,	NULL,	NULL,	NULL,	NULL,
+		UI_COLOR_SILVER, 0.0, 0,
+		UI_SHAPE_BUTTON_ROUND, 0.0, 0,
+		164,  66, 33, 33, 6, 2, (1 << 6), (1 << 2), 2
+	},
+	{
+		NULL,	NULL,	NULL,	NULL,	NULL,
+		UI_COLOR_SILVER, 0.0, 0,
+		UI_SHAPE_BUTTON_ROUND, 0.0, 0,
+		200,  94, 33, 33, 6, 3, (1 << 6), (1 << 3), 3
+	},
+	{
+		NULL,	NULL,	NULL,	NULL,	NULL,
+		UI_COLOR_SILVER, 0.0, 0,
+		UI_SHAPE_BUTTON_ROUND, 0.0, 0,
+		236,  66, 33, 33, 6, 4, (1 << 6), (1 << 4), 4
+	},
+	{
+		"HIST",	"M",	"CMD",	"UNDO",	NULL,
+		UI_COLOR_WHITE, 12.0, CAIRO_FONT_WEIGHT_BOLD,
+		UI_SHAPE_BUTTON_NORMAL, 12.0, UI_LAYOUT_LEFT,
+		  0, 141, 46, 28, 4, 1, (1 << 4), (1 << 1), 1
+	},
+	{
+		"EV\\kern-1 AL",	"N",	"PRG",	"CHARS",	NULL,
+		UI_COLOR_WHITE, 12.0, CAIRO_FONT_WEIGHT_BOLD,
+		UI_SHAPE_BUTTON_NORMAL, 12.0, UI_LAYOUT_LEFT,
+		 59, 141, 46, 28, 3, 1, (1 << 3), (1 << 1), 1
+	},
+	{
+		"\\tick",	"O",	"MTRW",	"EQW",	NULL,
+		UI_COLOR_WHITE, 12.0, CAIRO_FONT_WEIGHT_BOLD,
+		UI_SHAPE_BUTTON_NORMAL, 12.0, UI_LAYOUT_LEFT,
+		119, 141, 46, 28, 2, 1, (1 << 2), (1 << 1), 1
+	},
+	{
+		"S\\kern-1 Y\\kern-1 M\\kern-1 B",	"P",	"MTH",	"CAT",	NULL,
+		UI_COLOR_WHITE, 12.0, CAIRO_FONT_WEIGHT_BOLD,
+		UI_SHAPE_BUTTON_NORMAL, 12.0, UI_LAYOUT_LEFT,
+		179, 141, 46, 28, 1, 1, (1 << 1), (1 << 1), 1
+	},
+	{
+		"\\arrowleftdblfull",	NULL,	"DEL", "CLEAR",	NULL,
+		UI_COLOR_WHITE, 12.0, CAIRO_FONT_WEIGHT_BOLD,
+		UI_SHAPE_BUTTON_NORMAL, 0.0, 0,
+		238, 141, 46, 28, 0, 1, (1 << 0), (1 << 1), 1
+	},
+	{
+		"Y\\super x\\/super",	"Q",	"\\math_e\\xsuperior",	"LN",	NULL,
+		UI_COLOR_WHITE, 12.0, CAIRO_FONT_WEIGHT_BOLD,
+		UI_SHAPE_BUTTON_NORMAL, 12.0, UI_LAYOUT_LEFT,
+		  0, 183, 46, 28, 4, 2, (1 << 4), (1 << 2), 2
+	},
+	{
+		"\\radical\\overscore\\kern-7 X",	"R",
+		"\\math_x\\twosuperior",
+		"\\xsuperior\\kern-4\\math_radical\\overscore\\kern-5\\math_y",
+		NULL,
+		UI_COLOR_WHITE, 12.0, CAIRO_FONT_WEIGHT_BOLD,
+		UI_SHAPE_BUTTON_NORMAL, 12.0, UI_LAYOUT_LEFT,
+		 59, 183, 46, 28, 3, 2, (1 << 3), (1 << 2), 2
+	},
+	{
+		"SIN",	"S",	"ASIN",	"\\math_summation",	NULL,
+		UI_COLOR_WHITE, 12.0, CAIRO_FONT_WEIGHT_BOLD,
+		UI_SHAPE_BUTTON_NORMAL, 12.0, UI_LAYOUT_LEFT,
+		119, 183, 46, 28, 2, 2, (1 << 2), (1 << 2), 2
+	},
+	{
+		"COS",	"T",	"ACOS",	"\\math_partialdiff",	NULL,
+		UI_COLOR_WHITE, 12.0, CAIRO_FONT_WEIGHT_BOLD,
+		UI_SHAPE_BUTTON_NORMAL, 12.0, UI_LAYOUT_LEFT,
+		179, 183, 46, 28, 1, 2, (1 << 1), (1 << 2), 2
+	},
+	{
+		"TAN",	"U",	"ATAN",	"\\math_integral",	NULL,
+		UI_COLOR_WHITE, 12.0, CAIRO_FONT_WEIGHT_BOLD,
+		UI_SHAPE_BUTTON_NORMAL, 12.0, UI_LAYOUT_LEFT,
+		238, 183, 46, 28, 0, 2, (1 << 0), (1 << 2), 2
+	},
+	{
+		"EEX",	"V",	"10\\xsuperior",	"LOG",	NULL,
+		UI_COLOR_WHITE, 12.0, CAIRO_FONT_WEIGHT_BOLD,
+		UI_SHAPE_BUTTON_NORMAL, 12.0, UI_LAYOUT_LEFT,
+		  0, 225, 46, 28, 4, 3, (1 << 4), (1 << 3), 3
+	},
+	{
+		"+\\divisionslash\\minus",	"W",
+		"\\math_notequal",
+		"\\math_equal",
+		NULL,
+		UI_COLOR_WHITE, 12.0, CAIRO_FONT_WEIGHT_BOLD,
+		UI_SHAPE_BUTTON_NORMAL, 12.0, UI_LAYOUT_LEFT,
+		 59, 225, 46, 28, 3, 3, (1 << 3), (1 << 3), 3
+	},
+	{
+		"X",	"X",
+		"\\math_lessequal",
+		"\\math_less",
+		NULL,
+		UI_COLOR_WHITE, 12.0, CAIRO_FONT_WEIGHT_BOLD,
+		UI_SHAPE_BUTTON_NORMAL, 12.0, UI_LAYOUT_LEFT,
+		119, 225, 46, 28, 2, 3, (1 << 2), (1 << 3), 3
+	},
+	{
+		"1/X",	"Y",
+		"\\math_greaterequal",
+		"\\math_greater",
+		NULL,
+		UI_COLOR_WHITE, 12.0, CAIRO_FONT_WEIGHT_BOLD,
+		UI_SHAPE_BUTTON_NORMAL, 12.0, UI_LAYOUT_LEFT,
+		179, 225, 46, 28, 1, 3, (1 << 1), (1 << 3), 3
+	},
+	{
+		"\\divide",	"Z",	"ABS",	"ARG",	NULL,
+		UI_COLOR_WHITE, 19.0, CAIRO_FONT_WEIGHT_BOLD,
+		UI_SHAPE_BUTTON_NORMAL, 12.0, UI_LAYOUT_LEFT_NO_SPACE,
+		238, 225, 46, 28, 0, 3, (1 << 0), (1 << 3), 3
+	},
+	{
+		"ALPHA",	NULL,	"USER",	"ENTRY",	NULL,
+		UI_COLOR_BLACK, 12.0, CAIRO_FONT_WEIGHT_BOLD,
+		UI_SHAPE_BUTTON_LARGE, 0.0, 0,
+		  0, 267, 46, 32, 0, 0,        0,        0, 4
+	},
+	{
+		"7",	NULL,	"S.SLV",	"NUM.SLV",	NULL,
+		UI_COLOR_WHITE, 19.0, CAIRO_FONT_WEIGHT_BOLD,
+		UI_SHAPE_BUTTON_LARGE, 0.0, 0,
+		 59, 267, 46, 32, 3, 4, (1 << 3), (1 << 4), 4
+	},
+	{
+		"8",	NULL,	"EXP&LN",	"TRIG",	NULL,
+		UI_COLOR_WHITE, 19.0, CAIRO_FONT_WEIGHT_BOLD,
+		UI_SHAPE_BUTTON_LARGE, 0.0, 0,
+		119, 267, 46, 32, 2, 4, (1 << 2), (1 << 4), 4
+	},
+	{
+		"9",	NULL,	"FINANCE",	"TIME",	NULL,
+		UI_COLOR_WHITE, 19.0, CAIRO_FONT_WEIGHT_BOLD,
+		UI_SHAPE_BUTTON_LARGE, 0.0, 0,
+		179, 267, 46, 32, 1, 4, (1 << 1), (1 << 4), 4
+	},
+	{
+		"\\multiply",	NULL,	"[ ]",	"\" \"",	NULL,
+		UI_COLOR_WHITE, 19.0, CAIRO_FONT_WEIGHT_BOLD,
+		UI_SHAPE_BUTTON_LARGE, 0.0, 0,
+		238, 267, 46, 32, 0, 4, (1 << 0), (1 << 4), 4
+	},
+	{
+		"\\uparrowleft",	NULL,	NULL,	NULL,	NULL,
+		UI_COLOR_WHITE, 19.0, CAIRO_FONT_WEIGHT_BOLD,
+		UI_SHAPE_BUTTON_LARGE, 0.0, 0,
+		  0, 313, 46, 32, 0, 0,        0,        0, 5
+	},
+	{
+		"4",	NULL,	"CALC",	"ALG",	NULL,
+		UI_COLOR_WHITE, 19.0, CAIRO_FONT_WEIGHT_BOLD,
+		UI_SHAPE_BUTTON_LARGE, 0.0, 0,
+		 59, 313, 46, 32, 3, 5, (1 << 3), (1 << 5), 5
+	},
+	{
+		"5",	NULL,	"MATRICES",	"STAT",	NULL,
+		UI_COLOR_WHITE, 19.0, CAIRO_FONT_WEIGHT_BOLD,
+		UI_SHAPE_BUTTON_LARGE, 0.0, 0,
+		119, 313, 46, 32, 2, 5, (1 << 2), (1 << 5), 5
+	},
+	{
+		"6",	NULL,	"CONVERT",	"UNITS",	NULL,
+		UI_COLOR_WHITE, 19.0, CAIRO_FONT_WEIGHT_BOLD,
+		UI_SHAPE_BUTTON_LARGE, 0.0, 0,
+		179, 313, 46, 32, 1, 5, (1 << 1), (1 << 5), 5
+	},
+	{
+		"\\minus",	NULL,	"( )",	"_",	NULL,
+		UI_COLOR_WHITE, 19.0, CAIRO_FONT_WEIGHT_BOLD,
+		UI_SHAPE_BUTTON_LARGE, 0.0, 0,
+		238, 313, 46, 32, 0, 5, (1 << 0), (1 << 5), 5
+	},
+	{
+		"\\uparrowright",	NULL,	NULL,	NULL,	NULL,
+		UI_COLOR_WHITE, 19.0, CAIRO_FONT_WEIGHT_BOLD,
+		UI_SHAPE_BUTTON_LARGE, 0.0, 0,
+		  0, 359, 46, 32, 0, 0,        0,        0, 6
+	},
+	{
+		"1",	NULL,	"ARITH",	"CMPLX",	NULL,
+		UI_COLOR_WHITE, 19.0, CAIRO_FONT_WEIGHT_BOLD,
+		UI_SHAPE_BUTTON_LARGE, 0.0, 0,
+		 59, 359, 46, 32, 3, 6, (1 << 3), (1 << 6), 6
+	},
+	{
+		"2",	NULL,	"DEF",	"LIB",	NULL,
+		UI_COLOR_WHITE, 19.0, CAIRO_FONT_WEIGHT_BOLD,
+		UI_SHAPE_BUTTON_LARGE, 0.0, 0,
+		119, 359, 46, 32, 2, 6, (1 << 2), (1 << 6), 6
+	},
+	{
+		"3",	NULL,	"\\math_numbersign",	"BASE",	NULL,
+		UI_COLOR_WHITE, 19.0, CAIRO_FONT_WEIGHT_BOLD,
+		UI_SHAPE_BUTTON_LARGE, 0.0, 0,
+		179, 359, 46, 32, 1, 6, (1 << 1), (1 << 6), 6
+	},
+	{
+		"+",	NULL,
+		"{ }",
+		"\\guillemotleft\\ \\guillemotright",
+		NULL,
+		UI_COLOR_WHITE, 19.0, CAIRO_FONT_WEIGHT_BOLD,
+		UI_SHAPE_BUTTON_LARGE, 0.0, 0,
+		238, 359, 46, 32, 0, 6, (1 << 0), (1 << 6), 6
+	},
+	{
+		"ON",	NULL,	"CONT",	"OFF",	"CANCEL",
+		UI_COLOR_WHITE, 12.0, CAIRO_FONT_WEIGHT_BOLD,
+		UI_SHAPE_BUTTON_LARGE, 0.0, 0,
+		  0, 405, 46, 32, 0, 0,        0,        0, 0
+	},
+	{
+		"0",	NULL,
+		"\\math_infinity",
+		"\\math_arrowright",
+		NULL,
+		UI_COLOR_WHITE, 19.0, CAIRO_FONT_WEIGHT_BOLD,
+		UI_SHAPE_BUTTON_LARGE, 0.0, 0,
+		 59, 405, 46, 32, 3, 7, (1 << 3), (1 << 7), 7
+	},
+	{
+		"\\bullet",	NULL,
+		": :",
+		"\\math_downarrowleft",
+		NULL,
+		UI_COLOR_WHITE, 19.0, CAIRO_FONT_WEIGHT_BOLD,
+		UI_SHAPE_BUTTON_LARGE, 0.0, 0,
+		119, 405, 46, 32, 2, 7, (1 << 2), (1 << 7), 7
+	},
+	{
+		"SPC",	NULL,
+		"\\math_pi",
+		"\\large_comma",
+		NULL,
+		UI_COLOR_WHITE, 12.0, CAIRO_FONT_WEIGHT_BOLD,
+		UI_SHAPE_BUTTON_LARGE, 0.0, 0,
+		179, 405, 46, 32, 1, 7, (1 << 1), (1 << 7), 7
+	},
+	{
+		"ENTER",	NULL,	"ANS",	"\\arrowright NUM",	NULL,
+		UI_COLOR_WHITE, 12.0, CAIRO_FONT_WEIGHT_BOLD,
+		UI_SHAPE_BUTTON_LARGE, 0.0, 0,
+		238, 405, 46, 32, 0, 7, (1 << 0), (1 << 7), 7
+	},
+};
+#define X49GP_UI_NR_KEYS (sizeof(x49gp_ui_keys) / sizeof(x49gp_ui_keys[0]))
+
+static const x49gp_ui_key_t x50g_ui_keys[] =
+{
+	{
+		"F1",	"A",	"Y=",	NULL,	NULL,
+		UI_COLOR_BLACK,	12.0, CAIRO_FONT_WEIGHT_BOLD,
+		UI_SHAPE_BUTTON_TINY, 12.0, UI_LAYOUT_LEFT,
+		  0,   0, 36, 22, 5, 1, (1 << 5), (1 << 1), 1
+	},
+	{
+		"F2",	"B",	"WIN",	NULL,	NULL,
+		UI_COLOR_BLACK,	12.0, CAIRO_FONT_WEIGHT_BOLD,
+		UI_SHAPE_BUTTON_TINY, 12.0, UI_LAYOUT_LEFT,
+		 50,   0, 36, 22, 5, 2, (1 << 5), (1 << 2), 2
+	},
+	{
+		"F3",	"C",	"GRAPH",	NULL,	NULL,
+		UI_COLOR_BLACK,	12.0, CAIRO_FONT_WEIGHT_BOLD,
+		UI_SHAPE_BUTTON_TINY, 12.0, UI_LAYOUT_LEFT,
+		 99,   0, 36, 22, 5, 3, (1 << 5), (1 << 3), 3
+	},
+	{
+		"F4",	"D",	"2D/3D",	NULL,	NULL,
+		UI_COLOR_BLACK,	12.0, CAIRO_FONT_WEIGHT_BOLD,
+		UI_SHAPE_BUTTON_TINY, 12.0, UI_LAYOUT_LEFT,
+		149,   0, 36, 22, 5, 4, (1 << 5), (1 << 4), 4
+	},
+	{
+		"F5",	"E",	"TBLSET",	NULL,	NULL,
+		UI_COLOR_BLACK,	12.0, CAIRO_FONT_WEIGHT_BOLD,
+		UI_SHAPE_BUTTON_TINY, 12.0, UI_LAYOUT_LEFT,
+		198,   0, 36, 22, 5, 5, (1 << 5), (1 << 5), 5
+	},
+	{
+		"F6",	"F",	"TABLE",	NULL,	NULL,
+		UI_COLOR_BLACK,	12.0, CAIRO_FONT_WEIGHT_BOLD,
+		UI_SHAPE_BUTTON_TINY, 12.0, UI_LAYOUT_LEFT,
+		247,   0, 36, 22, 5, 6, (1 << 5), (1 << 6), 6
+	},
+	{
+		"APPS",	"G",	"FILES",	"BEGIN",	NULL,
+		UI_COLOR_WHITE, 10.0, CAIRO_FONT_WEIGHT_BOLD,
+		UI_SHAPE_BUTTON_SMALL, 10.0, UI_LAYOUT_BELOW,
+		  0,  44, 36, 28, 5, 7, (1 << 5), (1 << 7), 7
+	},
+	{
+		"MODE",	"H",	"CUSTOM",	"END",	NULL,
+		UI_COLOR_WHITE, 10.0, CAIRO_FONT_WEIGHT_BOLD,
+		UI_SHAPE_BUTTON_SMALL, 10.0, UI_LAYOUT_BELOW,
+		 50,  44, 36, 28, 6, 5, (1 << 6), (1 << 5), 5
+	},
+	{
+		"TOOL",	"I",	"i",	"I",	NULL,
+		UI_COLOR_WHITE, 10.0, CAIRO_FONT_WEIGHT_BOLD,
+		UI_SHAPE_BUTTON_SMALL, 10.0, UI_LAYOUT_BELOW,
+		 99,  44, 36, 28, 6, 6, (1 << 6), (1 << 6), 6
+	},
+	{
+		"V\\kern-1 AR",	"J",	"UPDIR",	"COPY",	NULL,
+		UI_COLOR_WHITE, 10.0, CAIRO_FONT_WEIGHT_BOLD,
+		UI_SHAPE_BUTTON_SMALL, 10.0, UI_LAYOUT_BELOW,
+		  0,  92, 36, 28, 6, 7, (1 << 6), (1 << 7), 7
+	},
+	{
+		"STO \\triangleright",	"K",	"RCL",	"CUT",	NULL,
+		UI_COLOR_WHITE, 10.0, CAIRO_FONT_WEIGHT_BOLD,
+		UI_SHAPE_BUTTON_SMALL, 10.0, UI_LAYOUT_BELOW,
+		 50,  92, 36, 28, 7, 1, (1 << 7), (1 << 1), 1
+	},
+	{
+		"NXT",	"L",	"PREV",	"PASTE",	NULL,
+		UI_COLOR_WHITE, 10.0, CAIRO_FONT_WEIGHT_BOLD,
+		UI_SHAPE_BUTTON_SMALL, 10.0, UI_LAYOUT_BELOW,
+		 99,  92, 36, 28, 7, 2, (1 << 7), (1 << 2), 2
+	},
+	{
+		NULL,	NULL,	NULL,	NULL,	NULL,
+		UI_COLOR_SILVER, 0.0, 0,
+		UI_SHAPE_BUTTON_ROUND, 0.0, 0,
+		200,  38, 33, 33, 6, 1, (1 << 6), (1 << 1), 1
+	},
+	{
+		NULL,	NULL,	NULL,	NULL,	NULL,
+		UI_COLOR_SILVER, 0.0, 0,
+		UI_SHAPE_BUTTON_ROUND, 0.0, 0,
+		164,  66, 33, 33, 6, 2, (1 << 6), (1 << 2), 2
+	},
+	{
+		NULL,	NULL,	NULL,	NULL,	NULL,
+		UI_COLOR_SILVER, 0.0, 0,
+		UI_SHAPE_BUTTON_ROUND, 0.0, 0,
+		200,  94, 33, 33, 6, 3, (1 << 6), (1 << 3), 3
+	},
+	{
+		NULL,	NULL,	NULL,	NULL,	NULL,
+		UI_COLOR_SILVER, 0.0, 0,
+		UI_SHAPE_BUTTON_ROUND, 0.0, 0,
+		236,  66, 33, 33, 6, 4, (1 << 6), (1 << 4), 4
+	},
+	{
+		"HIST",	"M",	"CMD",	"UNDO",	NULL,
+		UI_COLOR_WHITE, 12.0, CAIRO_FONT_WEIGHT_BOLD,
+		UI_SHAPE_BUTTON_NORMAL, 12.0, UI_LAYOUT_LEFT,
+		  0, 141, 46, 28, 4, 1, (1 << 4), (1 << 1), 1
+	},
+	{
+		"EV\\kern-1 AL",	"N",	"PRG",	"CHARS",	NULL,
+		UI_COLOR_WHITE, 12.0, CAIRO_FONT_WEIGHT_BOLD,
+		UI_SHAPE_BUTTON_NORMAL, 12.0, UI_LAYOUT_LEFT,
+		 59, 141, 46, 28, 3, 1, (1 << 3), (1 << 1), 1
+	},
+	{
+		"\\tick",	"O",	"MTRW",	"EQW",	NULL,
+		UI_COLOR_WHITE, 12.0, CAIRO_FONT_WEIGHT_BOLD,
+		UI_SHAPE_BUTTON_NORMAL, 12.0, UI_LAYOUT_LEFT,
+		119, 141, 46, 28, 2, 1, (1 << 2), (1 << 1), 1
+	},
+	{
+		"S\\kern-1 Y\\kern-1 M\\kern-1 B",	"P",	"MTH",	"CAT",	NULL,
+		UI_COLOR_WHITE, 12.0, CAIRO_FONT_WEIGHT_BOLD,
+		UI_SHAPE_BUTTON_NORMAL, 12.0, UI_LAYOUT_LEFT,
+		179, 141, 46, 28, 1, 1, (1 << 1), (1 << 1), 1
+	},
+	{
+		"\\arrowleftdblfull",	NULL,	"DEL", "CLEAR",	NULL,
+		UI_COLOR_WHITE, 12.0, CAIRO_FONT_WEIGHT_BOLD,
+		UI_SHAPE_BUTTON_NORMAL, 0.0, 0,
+		238, 141, 46, 28, 0, 1, (1 << 0), (1 << 1), 1
+	},
+	{
+		"Y\\super x\\/super",	"Q",	"\\math_e\\xsuperior",	"LN",	NULL,
+		UI_COLOR_WHITE, 12.0, CAIRO_FONT_WEIGHT_BOLD,
+		UI_SHAPE_BUTTON_NORMAL, 12.0, UI_LAYOUT_LEFT,
+		  0, 183, 46, 28, 4, 2, (1 << 4), (1 << 2), 2
+	},
+	{
+		"\\radical\\overscore\\kern-7 X",	"R",
+		"\\math_x\\twosuperior",
+		"\\xsuperior\\kern-4\\math_radical\\overscore\\kern-5\\math_y",
+		NULL,
+		UI_COLOR_WHITE, 12.0, CAIRO_FONT_WEIGHT_BOLD,
+		UI_SHAPE_BUTTON_NORMAL, 12.0, UI_LAYOUT_LEFT,
+		 59, 183, 46, 28, 3, 2, (1 << 3), (1 << 2), 2
+	},
+	{
+		"SIN",	"S",	"ASIN",	"\\math_summation",	NULL,
+		UI_COLOR_WHITE, 12.0, CAIRO_FONT_WEIGHT_BOLD,
+		UI_SHAPE_BUTTON_NORMAL, 12.0, UI_LAYOUT_LEFT,
+		119, 183, 46, 28, 2, 2, (1 << 2), (1 << 2), 2
+	},
+	{
+		"COS",	"T",	"ACOS",	"\\math_partialdiff",	NULL,
+		UI_COLOR_WHITE, 12.0, CAIRO_FONT_WEIGHT_BOLD,
+		UI_SHAPE_BUTTON_NORMAL, 12.0, UI_LAYOUT_LEFT,
+		179, 183, 46, 28, 1, 2, (1 << 1), (1 << 2), 2
+	},
+	{
+		"TAN",	"U",	"ATAN",	"\\math_integral",	NULL,
+		UI_COLOR_WHITE, 12.0, CAIRO_FONT_WEIGHT_BOLD,
+		UI_SHAPE_BUTTON_NORMAL, 12.0, UI_LAYOUT_LEFT,
+		238, 183, 46, 28, 0, 2, (1 << 0), (1 << 2), 2
+	},
+	{
+		"EEX",	"V",	"10\\xsuperior",	"LOG",	NULL,
+		UI_COLOR_WHITE, 12.0, CAIRO_FONT_WEIGHT_BOLD,
+		UI_SHAPE_BUTTON_NORMAL, 12.0, UI_LAYOUT_LEFT,
+		  0, 225, 46, 28, 4, 3, (1 << 4), (1 << 3), 3
+	},
+	{
+		"+\\divisionslash\\minus",	"W",
+		"\\math_notequal",
+		"\\math_equal",
+		NULL,
+		UI_COLOR_WHITE, 12.0, CAIRO_FONT_WEIGHT_BOLD,
+		UI_SHAPE_BUTTON_NORMAL, 12.0, UI_LAYOUT_LEFT,
+		 59, 225, 46, 28, 3, 3, (1 << 3), (1 << 3), 3
+	},
+	{
+		"X",	"X",
+		"\\math_lessequal",
+		"\\math_less",
+		NULL,
+		UI_COLOR_WHITE, 12.0, CAIRO_FONT_WEIGHT_BOLD,
+		UI_SHAPE_BUTTON_NORMAL, 12.0, UI_LAYOUT_LEFT,
+		119, 225, 46, 28, 2, 3, (1 << 2), (1 << 3), 3
+	},
+	{
+		"1/X",	"Y",
+		"\\math_greaterequal",
+		"\\math_greater",
+		NULL,
+		UI_COLOR_WHITE, 12.0, CAIRO_FONT_WEIGHT_BOLD,
+		UI_SHAPE_BUTTON_NORMAL, 12.0, UI_LAYOUT_LEFT,
+		179, 225, 46, 28, 1, 3, (1 << 1), (1 << 3), 3
+	},
+	{
+		"\\divide",	"Z",	"ABS",	"ARG",	NULL,
+		UI_COLOR_WHITE, 19.0, CAIRO_FONT_WEIGHT_BOLD,
+		UI_SHAPE_BUTTON_NORMAL, 12.0, UI_LAYOUT_LEFT_NO_SPACE,
+		238, 225, 46, 28, 0, 3, (1 << 0), (1 << 3), 3
+	},
+	{
+		"ALPHA",	NULL,	"USER",	"ENTRY",	NULL,
+		UI_COLOR_BLACK, 12.0, CAIRO_FONT_WEIGHT_BOLD,
+		UI_SHAPE_BUTTON_LARGE, 0.0, 0,
+		  0, 267, 46, 32, 0, 0,        0,        0, 4
+	},
+	{
+		"7",	NULL,	"S.SLV",	"NUM.SLV",	NULL,
+		UI_COLOR_WHITE, 19.0, CAIRO_FONT_WEIGHT_BOLD,
+		UI_SHAPE_BUTTON_LARGE, 0.0, 0,
+		 59, 267, 46, 32, 3, 4, (1 << 3), (1 << 4), 4
+	},
+	{
+		"8",	NULL,	"EXP&LN",	"TRIG",	NULL,
+		UI_COLOR_WHITE, 19.0, CAIRO_FONT_WEIGHT_BOLD,
+		UI_SHAPE_BUTTON_LARGE, 0.0, 0,
+		119, 267, 46, 32, 2, 4, (1 << 2), (1 << 4), 4
+	},
+	{
+		"9",	NULL,	"FINANCE",	"TIME",	NULL,
+		UI_COLOR_WHITE, 19.0, CAIRO_FONT_WEIGHT_BOLD,
+		UI_SHAPE_BUTTON_LARGE, 0.0, 0,
+		179, 267, 46, 32, 1, 4, (1 << 1), (1 << 4), 4
+	},
+	{
+		"\\multiply",	NULL,	"[ ]",	"\" \"",	NULL,
+		UI_COLOR_WHITE, 19.0, CAIRO_FONT_WEIGHT_BOLD,
+		UI_SHAPE_BUTTON_LARGE, 0.0, 0,
+		238, 267, 46, 32, 0, 4, (1 << 0), (1 << 4), 4
+	},
+	{
+		"\\uparrowleft",	NULL,	NULL,	NULL,	NULL,
+		UI_COLOR_BLACK, 19.0, CAIRO_FONT_WEIGHT_BOLD,
+		UI_SHAPE_BUTTON_LARGE, 0.0, 0,
+		  0, 313, 46, 32, 0, 0,        0,        0, 5
+	},
+	{
+		"4",	NULL,	"CALC",	"ALG",	NULL,
+		UI_COLOR_WHITE, 19.0, CAIRO_FONT_WEIGHT_BOLD,
+		UI_SHAPE_BUTTON_LARGE, 0.0, 0,
+		 59, 313, 46, 32, 3, 5, (1 << 3), (1 << 5), 5
+	},
+	{
+		"5",	NULL,	"MATRICES",	"STAT",	NULL,
+		UI_COLOR_WHITE, 19.0, CAIRO_FONT_WEIGHT_BOLD,
+		UI_SHAPE_BUTTON_LARGE, 0.0, 0,
+		119, 313, 46, 32, 2, 5, (1 << 2), (1 << 5), 5
+	},
+	{
+		"6",	NULL,	"CONVERT",	"UNITS",	NULL,
+		UI_COLOR_WHITE, 19.0, CAIRO_FONT_WEIGHT_BOLD,
+		UI_SHAPE_BUTTON_LARGE, 0.0, 0,
+		179, 313, 46, 32, 1, 5, (1 << 1), (1 << 5), 5
+	},
+	{
+		"\\minus",	NULL,	"( )",	"_",	NULL,
+		UI_COLOR_WHITE, 19.0, CAIRO_FONT_WEIGHT_BOLD,
+		UI_SHAPE_BUTTON_LARGE, 0.0, 0,
+		238, 313, 46, 32, 0, 5, (1 << 0), (1 << 5), 5
+	},
+	{
+		"\\uparrowright",	NULL,	NULL,	NULL,	NULL,
+		UI_COLOR_BLACK, 19.0, CAIRO_FONT_WEIGHT_BOLD,
+		UI_SHAPE_BUTTON_LARGE, 0.0, 0,
+		  0, 359, 46, 32, 0, 0,        0,        0, 6
+	},
+	{
+		"1",	NULL,	"ARITH",	"CMPLX",	NULL,
+		UI_COLOR_WHITE, 19.0, CAIRO_FONT_WEIGHT_BOLD,
+		UI_SHAPE_BUTTON_LARGE, 0.0, 0,
+		 59, 359, 46, 32, 3, 6, (1 << 3), (1 << 6), 6
+	},
+	{
+		"2",	NULL,	"DEF",	"LIB",	NULL,
+		UI_COLOR_WHITE, 19.0, CAIRO_FONT_WEIGHT_BOLD,
+		UI_SHAPE_BUTTON_LARGE, 0.0, 0,
+		119, 359, 46, 32, 2, 6, (1 << 2), (1 << 6), 6
+	},
+	{
+		"3",	NULL,	"\\math_numbersign",	"BASE",	NULL,
+		UI_COLOR_WHITE, 19.0, CAIRO_FONT_WEIGHT_BOLD,
+		UI_SHAPE_BUTTON_LARGE, 0.0, 0,
+		179, 359, 46, 32, 1, 6, (1 << 1), (1 << 6), 6
+	},
+	{
+		"+",	NULL,
+		"{ }",
+		"\\guillemotleft\\ \\guillemotright",
+		NULL,
+		UI_COLOR_WHITE, 19.0, CAIRO_FONT_WEIGHT_BOLD,
+		UI_SHAPE_BUTTON_LARGE, 0.0, 0,
+		238, 359, 46, 32, 0, 6, (1 << 0), (1 << 6), 6
+	},
+	{
+		"ON",	NULL,	"CONT",	"OFF",	"CANCEL",
+		UI_COLOR_WHITE, 12.0, CAIRO_FONT_WEIGHT_BOLD,
+		UI_SHAPE_BUTTON_LARGE, 0.0, 0,
+		  0, 405, 46, 32, 0, 0,        0,        0, 0
+	},
+	{
+		"0",	NULL,
+		"\\math_infinity",
+		"\\math_arrowright",
+		NULL,
+		UI_COLOR_WHITE, 19.0, CAIRO_FONT_WEIGHT_BOLD,
+		UI_SHAPE_BUTTON_LARGE, 0.0, 0,
+		 59, 405, 46, 32, 3, 7, (1 << 3), (1 << 7), 7
+	},
+	{
+		"\\bullet",	NULL,
+		": :",
+		"\\math_downarrowleft",
+		NULL,
+		UI_COLOR_WHITE, 19.0, CAIRO_FONT_WEIGHT_BOLD,
+		UI_SHAPE_BUTTON_LARGE, 0.0, 0,
+		119, 405, 46, 32, 2, 7, (1 << 2), (1 << 7), 7
+	},
+	{
+		"SPC",	NULL,
+		"\\math_pi",
+		"\\large_comma",
+		NULL,
+		UI_COLOR_WHITE, 12.0, CAIRO_FONT_WEIGHT_BOLD,
+		UI_SHAPE_BUTTON_LARGE, 0.0, 0,
+		179, 405, 46, 32, 1, 7, (1 << 1), (1 << 7), 7
+	},
+	{
+		"ENTER",	NULL,	"ANS",	"\\arrowright NUM",	NULL,
+		UI_COLOR_WHITE, 12.0, CAIRO_FONT_WEIGHT_BOLD,
+		UI_SHAPE_BUTTON_LARGE, 0.0, 0,
+		238, 405, 46, 32, 0, 7, (1 << 0), (1 << 7), 7
+	},
+};
+#define X50G_UI_NR_KEYS (sizeof(x50g_ui_keys) / sizeof(x50g_ui_keys[0]))
+
+static void
+x49gp_ui_color_init(GdkColor *color, u8 red, u8 green, u8 blue)
+{
+	color->red = (red << 8) | red;
+	color->green = (green << 8) | green;
+	color->blue = (blue << 8) | blue;
+}
+
+static void
+x49gp_ui_style_init(GtkStyle *style, GtkWidget *widget,
+		    GdkColor *fg, GdkColor *bg)
+{
+	int i;
+
+	for (i = 0; i < 5; i++) {
+		style->fg[i] = *fg;
+		style->bg[i] = *bg;
+
+		style->text[i] = style->fg[i];
+		style->base[i] = style->bg[i];
+	}
+
+	style->xthickness = 0;
+	style->ythickness = 0;
+}
+
+static int
+x49gp_ui_button_pixmaps_init(x49gp_t *x49gp, x49gp_ui_button_t *button,
+			     x49gp_ui_color_t color)
+{
+	x49gp_ui_t *ui = x49gp->ui;
+	GdkPixbuf *src, *dst;
+	GtkStyle *style;
+	int i;
+
+	style = gtk_style_new();
+	x49gp_ui_style_init(style, button->button,
+			    &ui->colors[button->key->color],
+			    &ui->colors[UI_COLOR_BLACK]);
+
+	for (i = 0; i < 5; i++) {
+		style->bg_pixmap[i] = gdk_pixmap_new(ui->window->window,
+						     button->key->width,
+						     button->key->height, -1);
+
+		if (i == GTK_STATE_ACTIVE) {
+			if (color == UI_COLOR_SILVER) {
+				GError *gerror = NULL;
+
+				src = gdk_pixbuf_new_subpixbuf(ui->bg_pixbuf,
+					       ui->kb_x_offset + button->key->x,
+					       ui->kb_y_offset + button->key->y,
+					       button->key->width,
+					       button->key->height);
+				dst = gdk_pixbuf_copy(src);
+				g_object_unref(src);
+
+				src = gdk_pixbuf_new_from_inline(sizeof(button_round),
+						button_round, FALSE, &gerror);
+
+				gdk_pixbuf_composite(src, dst,
+						0, 0, 
+						button->key->width,
+						button->key->height,
+						0.0, 0.0, 1.0, 1.0,
+						GDK_INTERP_HYPER, 0xff);
+
+				g_object_unref(src);
+				src = dst;
+			} else {
+				src = gdk_pixbuf_new_subpixbuf(ui->bg_pixbuf,
+					       ui->kb_x_offset + button->key->x,
+					       ui->kb_y_offset + button->key->y + 1,
+					       button->key->width,
+					       button->key->height);
+			}
+		} else {
+			src = gdk_pixbuf_new_subpixbuf(ui->bg_pixbuf,
+					       ui->kb_x_offset + button->key->x,
+					       ui->kb_y_offset + button->key->y,
+					       button->key->width,
+					       button->key->height);
+		}
+
+		gdk_draw_pixbuf(style->bg_pixmap[i],
+				ui->window->style->black_gc,
+				src, 0, 0, 0, 0,
+				button->key->width, button->key->height,
+				GDK_RGB_DITHER_NORMAL, 0, 0);
+
+		g_object_unref(src);
+	}
+
+	gtk_widget_set_style(button->button, style);
+	return 0;
+}
+
+static void
+x49gp_ui_symbol_path(cairo_t *cr, double size,
+		     double xoffset, double yoffset,
+		     const x49gp_symbol_t *symbol)
+{
+	const symbol_path_t *path;
+	const cairo_path_data_t *data;
+	int i;
+
+	path = symbol->path;
+	if (NULL == path) {
+		return;
+	}
+
+	cairo_move_to(cr, xoffset, yoffset);
+
+	for (i = 0; i < path->num_data; i += path->data[i].header.length) {
+		data = &path->data[i];
+
+		switch (data->header.type) {
+		case CAIRO_PATH_MOVE_TO:
+			cairo_rel_move_to(cr, size * data[1].point.x,
+					      -size * data[1].point.y);
+			break;
+		case CAIRO_PATH_LINE_TO:
+			cairo_rel_line_to(cr, size * data[1].point.x,
+					      -size * data[1].point.y);
+			break;
+		case CAIRO_PATH_CURVE_TO:
+			cairo_rel_curve_to(cr, size * data[1].point.x,
+					       -size * data[1].point.y,
+					       size * data[2].point.x,
+					       -size * data[2].point.y,
+					       size * data[3].point.x,
+					       -size * data[3].point.y);
+			break;
+		case CAIRO_PATH_CLOSE_PATH:
+			cairo_close_path(cr);
+			break;
+		}
+	}
+}
+
+static void
+x49gp_ui_draw_symbol(cairo_t *cr, GdkColor *color, double size,
+		     double line_width, gboolean fill,
+		     double xoffset, double yoffset,
+		     const x49gp_symbol_t *symbol)
+{
+	cairo_set_line_cap(cr, CAIRO_LINE_CAP_BUTT);
+	cairo_set_line_join(cr, CAIRO_LINE_JOIN_MITER);
+	cairo_set_line_width(cr, line_width);
+	cairo_set_source_rgb(cr, ((double) color->red) / 65535.0,
+				 ((double) color->green) / 65535.0,
+				 ((double) color->blue) / 65535.0);
+
+	x49gp_ui_symbol_path(cr, size, xoffset, yoffset, symbol);
+
+	if (fill) {
+		cairo_fill(cr);
+	} else {
+		cairo_stroke(cr);
+	}
+}
+
+static int
+x49gp_ui_lookup_glyph(const char *name, int namelen, gunichar *glyph)
+{
+	int i;
+
+	for (i = 0; i < NR_GLYPHNAMES; i++) {
+		if ((strlen(x49gp_glyphs[i].name) == namelen) &&
+		    !strncmp(x49gp_glyphs[i].name, name, namelen)) {
+			if (glyph)
+				*glyph = x49gp_glyphs[i].unichar;
+			return 1;
+		}
+	}
+
+	return 0;
+}
+
+static int
+x49gp_text_strlen(const char *text)
+{
+	const char *p, *q;
+	char c;
+	int namelen;
+	int n = 0;
+
+	p = text;
+	while ((c = *p++)) {
+		if (c != '\\') {
+			n++;
+			continue;
+		}
+
+		q = p;
+		while (*q) {
+			if ((*q == '\\') || (*q == ' '))
+				break;
+			q++;
+		}
+		if (q == p) {
+			n++;
+			p++;
+			continue;
+		}
+		namelen = q - p;
+		if (*q == ' ')
+			q++;
+
+		if (symbol_lookup_glyph_by_name(p, namelen, NULL)) {
+			p = q;
+			n++;
+			continue;
+		}
+
+		if (x49gp_ui_lookup_glyph(p, namelen, NULL)) {
+			p = q;
+			n++;
+			continue;
+		}
+
+		/*
+		 * Insert symbol .notdef here...
+		 */
+		p = q;
+		n++;
+	}
+
+	return n;
+}
+
+static int
+x49gp_text_to_ucs4(const char *text, gunichar **ucs4p)
+{
+	const char *p, *q;
+	gunichar glyph;
+	gunichar *ucs4;
+	char c;
+	int namelen;
+	int i, n;
+
+	n = x49gp_text_strlen(text);
+	if (n <= 0)
+		return n;
+
+	ucs4 = malloc(n * sizeof(gunichar));
+
+	i = 0;
+
+	p = text;
+	while ((c = *p++)) {
+		if (i == n) {
+			free(ucs4);
+			return -1;
+		}
+
+		if (c != '\\') {
+			ucs4[i++] = c;
+			continue;
+		}
+
+		q = p;
+		while (*q) {
+			if ((*q == '\\') || (*q == ' '))
+				break;
+			q++;
+		}
+		if (q == p) {
+			ucs4[i++] = *p++;
+			continue;
+		}
+		namelen = q - p;
+		if (*q == ' ')
+			q++;
+
+		if (symbol_lookup_glyph_by_name(p, namelen, &glyph)) {
+			ucs4[i++] = glyph;
+			p = q;
+			continue;
+		}
+
+		if (x49gp_ui_lookup_glyph(p, namelen, &glyph)) {
+			ucs4[i++] = glyph;
+			p = q;
+			continue;
+		}
+
+		/*
+		 * Insert symbol .notdef here...
+		 */
+		ucs4[i++] = 0xe000;
+		p = q;
+	}
+
+	*ucs4p = ucs4;
+	return n;
+}
+
+static void
+x49gp_ui_vtext_path(cairo_t *cr, const char *family, double size,
+		    double x, double y, int n, va_list ap)
+{
+	cairo_text_extents_t extents;
+	cairo_font_weight_t weight;
+	cairo_font_slant_t slant;
+	const x49gp_symbol_t *symbol;
+	const char *text;
+	gunichar *ucs4;
+	char out[8];
+	int bytes;
+	int i, j, len;
+
+	for (i = 0; i < n; i++) {
+		slant = va_arg(ap, cairo_font_slant_t);
+		weight = va_arg(ap, cairo_font_weight_t);
+		text = va_arg(ap, const char *);
+
+		cairo_select_font_face(cr, family, slant, weight);
+		cairo_set_font_size(cr, size);
+
+		ucs4 = NULL;
+		len = x49gp_text_to_ucs4(text, &ucs4);
+		if (len <= 0) {
+			continue;
+		}
+
+		for (j = 0; j < len; j++) {
+			if (g_unichar_type(ucs4[j]) == G_UNICODE_PRIVATE_USE) {
+				/*
+				 * Draw Symbol, Increment x...
+				 */
+				symbol = symbol_get_by_glyph(ucs4[j]);
+				if (NULL == symbol)
+					symbol = symbol_get_by_glyph(0xe000);
+
+				size *= symbol->prescale;
+
+				x49gp_ui_symbol_path(cr, size, x, y, symbol);
+
+				x += size * symbol->x_advance;
+				y -= size * symbol->y_advance;
+
+				size *= symbol->postscale;
+
+				if (symbol->prescale * symbol->postscale != 1.)
+					cairo_set_font_size(cr, size);
+
+				continue;
+			}
+
+			bytes = g_unichar_to_utf8(ucs4[j], out);
+			out[bytes] = '\0';
+
+			cairo_text_extents(cr, out, &extents);
+
+			cairo_move_to(cr, x, y);
+
+			cairo_text_path(cr, out);
+
+			x += extents.x_advance;
+			y += extents.y_advance;
+		}
+
+		free(ucs4);
+	}
+}
+
+static void
+x49gp_ui_text_size(cairo_t *cr, const char *family, double size,
+		   double *x_bearing, double *y_bearing,
+		   double *width, double *height,
+		   double *ascent, double *descent,
+		   int n, ...)
+{
+	va_list ap;
+	cairo_font_extents_t font_extents;
+	cairo_font_weight_t weight;
+	cairo_font_slant_t slant;
+	double x1, y1, x2, y2, a, d;
+	const char *text;
+	int i;
+
+	if (n < 1)
+		return;
+
+	va_start(ap, n);
+
+	x49gp_ui_vtext_path(cr, family, size, 0.0, 0.0, n, ap);
+
+	cairo_fill_extents(cr, &x1, &y1, &x2, &y2);
+
+	if (y2 < 0.0)
+		y2 = 0.0;
+
+	a = 0.0;
+	d = 0.0;
+
+	for (i = 0; i < n; i++) {
+		slant = va_arg(ap, cairo_font_slant_t);
+		weight = va_arg(ap, cairo_font_weight_t);
+		text = va_arg(ap, const char *);
+
+		cairo_select_font_face(cr, family, slant, weight);
+		cairo_set_font_size(cr, size);
+
+		cairo_font_extents(cr, &font_extents);
+
+		/*
+		 * Cairo seems to return overall height in ascent,
+		 * so fix this by calculating ascent = height - descent.
+		 */
+		if (font_extents.ascent - font_extents.descent > a)
+			a = font_extents.ascent - font_extents.descent;
+		if (font_extents.descent > -d)
+			d = -font_extents.descent;
+	}
+
+	*x_bearing = x1;
+	*y_bearing = y2;
+	*width = x2 - x1;
+	*height = y2 - y1;
+	*ascent = a;
+	*descent = d;
+
+	va_end(ap);
+}
+
+static void
+x49gp_ui_draw_text(cairo_t *cr, GdkColor *color, 
+		   const char *family, double size, double line_width,
+		   int xoffset, int yoffset, int n, ...)
+{
+	va_list ap;
+
+	if (n < 1)
+		return;
+
+	va_start(ap, n);
+
+	cairo_set_line_width(cr, line_width);
+	cairo_set_source_rgb(cr, ((double) color->red) / 65535.0,
+				 ((double) color->green) / 65535.0,
+				 ((double) color->blue) / 65535.0);
+
+	x49gp_ui_vtext_path(cr, family, size, xoffset, yoffset, n, ap);
+
+	if (line_width == 0.0)
+		cairo_fill(cr);
+	else
+		cairo_stroke(cr);
+
+	va_end(ap);
+}
+
+#if 0
+static void
+x49gp_ui_dump_path(cairo_t *cr, const char *family, int n, ...)
+{
+	va_list ap;
+	const cairo_path_t *path;
+	const cairo_path_data_t *data;
+	int i;
+
+	if (n < 1)
+		return;
+
+	va_start(ap, n);
+
+	x49gp_ui_vtext_path(cr, family, 1000.0, 0.0, 0.0, n, ap);
+
+	path = cairo_copy_path(cr);
+	if (NULL == path) {
+		return;
+	}
+	cairo_new_path(cr);
+
+	for (i = 0; i < path->num_data; i += path->data[i].header.length) {
+		data = &path->data[i];
+
+		switch (data->header.type) {
+		case CAIRO_PATH_MOVE_TO:
+			printf("path: move to  %4.0f %4.0f\n",
+				data[1].point.x, -data[1].point.y);
+			break;
+		case CAIRO_PATH_LINE_TO:
+			printf("path: line to  %4.0f %4.0f\n",
+				data[1].point.x, -data[1].point.y);
+			break;
+		case CAIRO_PATH_CURVE_TO:
+			printf("path: curve to %4.0f %4.0f\n"
+			       "               %4.0f %4.0f\n"
+			       "               %4.0f %4.0f\n",
+				data[1].point.x, -data[1].point.y,
+				data[2].point.x, -data[2].point.y,
+				data[3].point.x, -data[3].point.y);
+			break;
+		case CAIRO_PATH_CLOSE_PATH:
+			printf("path: close path\n");
+			break;
+		}
+	}
+
+	va_end(ap);
+}
+#endif
+
+static unsigned char
+bitmap_font_lookup_glyph(const bitmap_font_t *font,
+			 const char *name, int namelen)
+{
+	int i;
+
+	for (i = 0; font->glyphs[i].name; i++) {
+		if ((strlen(font->glyphs[i].name) == namelen) &&
+		    !strncmp(font->glyphs[i].name, name, namelen)) {
+			return i;
+		}
+	}
+
+	return 0;
+}
+
+static unsigned char
+bitmap_font_lookup_ascii(const bitmap_font_t *font, char c)
+{
+	int namelen = 0;
+	char *name;
+
+	switch (c) {
+	case ' ': name = "space"; break;
+	case '!': name = "exclam"; break;
+	case '"': name = "quotedbl"; break;
+	case '#': name = "numbersign"; break;
+	case '$': name = "dollar"; break;
+	case '%': name = "percent"; break;
+	case '&': name = "ampersand"; break;
+	case '(': name = "parenleft"; break;
+	case ')': name = "parenright"; break;
+	case '*': name = "asterisk"; break;
+	case '+': name = "plus"; break;
+	case ',': name = "comma"; break;
+	case '-': name = "hyphen"; break;
+	case '.': name = "period"; break;
+	case '/': name = "slash"; break;
+	case '0': name = "zero"; break;
+	case '1': name = "one"; break;
+	case '2': name = "two"; break;
+	case '3': name = "three"; break;
+	case '4': name = "four"; break;
+	case '5': name = "five"; break;
+	case '6': name = "six"; break;
+	case '7': name = "seven"; break;
+	case '8': name = "eight"; break;
+	case '9': name = "nine"; break;
+	case ':': name = "colon"; break;
+	case ';': name = "semicolon"; break;
+	case '<': name = "less"; break;
+	case '=': name = "equal"; break;
+	case '>': name = "greater"; break;
+	case '?': name = "question"; break;
+	case '@': name = "at"; break;
+	case '[': name = "bracketleft"; break;
+	case '\\': name = "backslash"; break;
+	case ']': name = "bracketright"; break;
+	case '^': name = "asciicircum"; break;
+	case '_': name = "underscore"; break;
+	case '`': name = "quoteleft"; break;
+	case '{': name = "braceleft"; break;
+	case '|': name = "bar"; break;
+	case '}': name = "braceright"; break;
+	case '~': name = "asciitilde"; break;
+	default:
+		  name = &c;
+		  namelen = 1;
+		  break;
+	}
+
+	if (0 == namelen)
+		namelen = strlen(name);
+
+	return bitmap_font_lookup_glyph(font, name, namelen);
+}
+
+static int
+bitmap_font_strlen(const char *text)
+{
+	const char *p, *q;
+	char c;
+	int n = 0;
+
+	p = text;
+	while ((c = *p++)) {
+		if (c != '\\') {
+			n++;
+			continue;
+		}
+
+		q = p;
+		while (*q) {
+			if ((*q == '\\') || (*q == ' '))
+				break;
+			q++;
+		}
+		if (q == p) {
+			n++;
+			p++;
+			continue;
+		}
+		if (*q == ' ')
+			q++;
+
+		n++;
+		p = q;
+	}
+
+	return n;
+}
+
+static int
+bitmap_font_text_to_glyphs(const bitmap_font_t *font,
+			   const char *text, unsigned char **glyphp)
+{
+	unsigned char *glyphs;
+	const char *p, *q;
+	unsigned char c;
+	int namelen;
+	int i, n;
+
+	n = bitmap_font_strlen(text);
+	if (n <= 0)
+		return n;
+
+	glyphs = malloc(n);
+
+	i = 0;
+
+	p = text;
+	while ((c = *p++)) {
+		if (i == n) {
+			free(glyphs);
+			return -1;
+		}
+
+		if (c != '\\') {
+			glyphs[i++] = bitmap_font_lookup_ascii(font, c);
+			continue;
+		}
+
+		q = p;
+		while (*q) {
+			if ((*q == '\\') || (*q == ' '))
+				break;
+			q++;
+		}
+		if (q == p) {
+			glyphs[i++] = bitmap_font_lookup_ascii(font, *p++);
+			continue;
+		}
+		namelen = q - p;
+		if (*q == ' ')
+			q++;
+
+		glyphs[i++] = bitmap_font_lookup_glyph(font, p, namelen);
+		p = q;
+	}
+
+	*glyphp = glyphs;
+	return n;
+
+}
+
+static void
+bitmap_font_text_size(const bitmap_font_t *font, const char *text,
+		      int *width, int *height, int *ascent, int *descent)
+{
+	const bitmap_glyph_t *glyph;
+	unsigned char *glyphs;
+	int i, n, w, a, d;
+
+	w = 0;
+	a = 0;
+	d = 0;
+
+	n = bitmap_font_text_to_glyphs(font, text, &glyphs);
+
+	for (i = 0; i < n; i++) {
+		glyph = &font->glyphs[glyphs[i]];
+
+		w += glyph->width;
+
+		if (glyph->ascent > a)
+			a = glyph->ascent;
+		if (glyph->descent < d)
+			d = glyph->descent;
+	}
+
+	*width = w - 1;
+	*height = font->ascent - font->descent;
+	*ascent = a;
+	*descent = d;
+
+	if (n > 0) {
+		free(glyphs);
+	}
+}
+
+static void
+bitmap_font_draw_text(GdkDrawable *drawable, GdkColor *color,
+		      const bitmap_font_t *font,
+		      int x, int y, const char *text)
+{
+	const bitmap_glyph_t *glyph;
+	unsigned char *glyphs;
+	GdkBitmap *bitmap;
+	GdkGC *gc;
+	int i, n, w, h;
+
+	gc = gdk_gc_new(drawable);
+	gdk_gc_set_rgb_fg_color(gc, color);
+
+	n = bitmap_font_text_to_glyphs(font, text, &glyphs);
+
+	for (i = 0; i < n; i++) {
+		glyph = &font->glyphs[glyphs[i]];
+
+		w = glyph->width - glyph->kern;
+		h = glyph->ascent - glyph->descent;
+
+		if (w <= 0 || h <= 0) {
+			x += glyph->width;
+			continue;
+		}
+
+		bitmap = gdk_bitmap_create_from_data(NULL, (char *) glyph->bits, w, h);
+
+		gdk_gc_set_ts_origin(gc, x + glyph->kern,
+				     y + font->ascent - glyph->ascent);
+		gdk_gc_set_stipple(gc, bitmap);
+		gdk_gc_set_fill(gc, GDK_STIPPLED);
+
+		gdk_draw_rectangle(drawable, gc, TRUE, x + glyph->kern,
+				   y + font->ascent - glyph->ascent, w, h);
+
+		g_object_unref(bitmap);
+
+		x += glyph->width;
+	}
+
+	g_object_unref(gc);
+
+	if (n > 0) {
+		free(glyphs);
+	}
+}
+
+static gboolean
+x49gp_ui_button_press(GtkWidget *widget, GdkEventButton *event,
+		      gpointer user_data)
+{
+	x49gp_ui_button_t *button = user_data;
+	const x49gp_ui_key_t *key = button->key;
+	x49gp_t *x49gp = button->x49gp;
+
+#ifdef DEBUG_X49GP_UI
+fprintf(stderr, "%s:%u: type %u, button %u\n", __FUNCTION__, __LINE__, event->type, event->button);
+#endif
+
+	if (event->type != GDK_BUTTON_PRESS)
+		return FALSE;
+
+	switch (event->button) {
+	case 1:
+		button->down = TRUE;
+		break;
+	case 3:
+		if (!button->down) {
+			gtk_button_pressed(GTK_BUTTON(button->button));
+		}
+		button->down = TRUE;
+		button->hold = TRUE;
+		break;
+	default:
+		return TRUE;
+	}
+
+#ifdef DEBUG_X49GP_UI
+	printf("%s: button %u: col %u, row %u, eint %u\n", __FUNCTION__,
+		event->button,
+		button->key->column, button->key->row, button->key->eint);
+#endif
+
+	if (key->rowbit) {
+		s3c2410_io_port_g_set_bit(x49gp, key->eint, 1);
+		x49gp->keybycol[key->column] |= key->rowbit;
+		x49gp->keybyrow[key->row] |= key->columnbit;
+	} else {
+		s3c2410_io_port_f_set_bit(x49gp, key->eint, 1);
+	}
+
+	return FALSE;
+}
+
+static gboolean
+x49gp_ui_button_release(GtkWidget *widget, GdkEventButton *event,
+			gpointer user_data)
+{
+	x49gp_ui_button_t *button = user_data;
+	x49gp_t *x49gp = button->x49gp;
+	x49gp_ui_t *ui = x49gp->ui;
+	const x49gp_ui_key_t *key;
+	GtkButton *gtkbutton;
+	int i;
+
+	if (event->type != GDK_BUTTON_RELEASE)
+		return FALSE;
+
+	switch (event->button) {
+	case 1:
+		break;
+	default:
+		return TRUE;
+	}
+
+	for (i = 0; i < ui->nr_buttons; i++) {
+		button = &ui->buttons[i];
+
+		if (! button->down)
+			continue;
+
+#ifdef DEBUG_X49GP_UI
+		printf("%s: button %u: col %u, row %u, eint %u\n", __FUNCTION__,
+			event->button,
+			button->key->column, button->key->row, button->key->eint);
+#endif
+
+		button->down = FALSE;
+		button->hold = FALSE;
+
+		gtkbutton = GTK_BUTTON(button->button);
+
+		if (button != user_data)
+			gtkbutton->in_button = FALSE;
+		gtk_button_released(gtkbutton);
+
+		key = button->key;
+
+		if (key->rowbit) {
+			s3c2410_io_port_g_set_bit(x49gp, key->eint, 0);
+			x49gp->keybycol[key->column] &= ~(key->rowbit);
+			x49gp->keybyrow[key->row] &= ~(key->columnbit);
+		} else {
+			s3c2410_io_port_f_set_bit(x49gp, key->eint, 0);
+		}
+	}
+
+	return FALSE;
+}
+
+static gboolean
+x49gp_ui_button_leave(GtkWidget *widget, GdkEventCrossing *event,
+		      gpointer user_data)
+{
+	x49gp_ui_button_t *button = user_data;
+
+	if (event->type != GDK_LEAVE_NOTIFY)
+		return FALSE;
+
+	if (!button->hold)
+		return FALSE;
+
+	return TRUE;
+}
+
+static gboolean
+x49gp_ui_key_event(GtkWidget *widget, GdkEventKey *event, gpointer user_data)
+{
+	x49gp_t *x49gp = user_data;
+	x49gp_ui_t *ui = x49gp->ui;
+	x49gp_ui_button_t *button;
+	GdkEventButton bev;
+	gboolean save_in;
+	int index;
+
+#ifdef DEBUG_X49GP_UI
+fprintf(stderr, "%s:%u: type %u, keyval %04x\n", __FUNCTION__, __LINE__, event->type, event->keyval);
+#endif
+
+	switch (event->keyval) {
+	case GDK_A: case GDK_a: case GDK_F1:	index = 0;	break;
+	case GDK_B: case GDK_b: case GDK_F2:	index = 1;	break;
+	case GDK_C: case GDK_c: case GDK_F3:	index = 2;	break;
+	case GDK_D: case GDK_d: case GDK_F4:	index = 3;	break;
+	case GDK_E: case GDK_e: case GDK_F5:	index = 4;	break;
+	case GDK_F: case GDK_f: case GDK_F6:	index = 5;	break;
+	case GDK_G: case GDK_g:			index = 6;	break;
+	case GDK_H: case GDK_h:			index = 7;	break;
+	case GDK_I: case GDK_i:			index = 8;	break;
+	case GDK_J: case GDK_j:			index = 9;	break;
+	case GDK_K: case GDK_k:			index = 10;	break;
+	case GDK_L: case GDK_l:			index = 11;	break;
+	case GDK_Up: case GDK_KP_Up:		index = 12;	break;
+	case GDK_Left: case GDK_KP_Left:	index = 13;	break;
+	case GDK_Down: case GDK_KP_Down:	index = 14;	break;
+	case GDK_Right: case GDK_KP_Right:	index = 15;	break;
+	case GDK_M: case GDK_m:			index = 16;	break;
+	case GDK_N: case GDK_n:			index = 17;	break;
+	case GDK_O: case GDK_o:
+	case GDK_apostrophe:			index = 18;	break;
+	case GDK_P: case GDK_p:			index = 19;	break;
+	case GDK_BackSpace: case GDK_Delete:
+	case GDK_KP_Delete:			index = 20;	break;
+	case GDK_Q: case GDK_q:			index = 21;	break;
+	case GDK_R: case GDK_r:			index = 22;	break;
+	case GDK_S: case GDK_s:			index = 23;	break;
+	case GDK_T: case GDK_t:			index = 24;	break;
+	case GDK_U: case GDK_u:			index = 25;	break;
+	case GDK_V: case GDK_v:			index = 26;	break;
+	case GDK_W: case GDK_w:			index = 27;	break;
+	case GDK_X: case GDK_x:			index = 28;	break;
+	case GDK_Y: case GDK_y:			index = 29;	break;
+	case GDK_Z: case GDK_z:
+	case GDK_slash: case GDK_KP_Divide:	index = 30;	break;
+#ifdef __APPLE__
+	case GDK_Tab:					index = 31;	break;
+#else
+	case GDK_Tab:					index = 31;	break;
+	case GDK_Alt_L: case GDK_Alt_R:
+	case GDK_Meta_L: case GDK_Meta_R:
+	case GDK_Mode_switch:			index = 31;	break;
+#endif
+	case GDK_7: case GDK_KP_7:		index = 32;	break;
+	case GDK_8: case GDK_KP_8:		index = 33;	break;
+	case GDK_9: case GDK_KP_9:		index = 34;	break;
+	case GDK_multiply: case GDK_backslash:
+	case GDK_KP_Multiply:			index = 35;	break;
+	case GDK_Shift_L:			index = 36;	break;
+	case GDK_4: case GDK_KP_4:		index = 37;	break;
+	case GDK_5: case GDK_KP_5:		index = 38;	break;
+	case GDK_6: case GDK_KP_6:		index = 39;	break;
+	case GDK_minus: case GDK_KP_Subtract:	index = 40;	break;
+	case GDK_Shift_R: case GDK_Control_L:	index = 41;	break;
+	case GDK_1: case GDK_KP_1:		index = 42;	break;
+	case GDK_2: case GDK_KP_2:		index = 43;	break;
+	case GDK_3: case GDK_KP_3:		index = 44;	break;
+	case GDK_plus: case GDK_equal:
+	case GDK_KP_Add:			index = 45;	break;
+	case GDK_Escape:			index = 46;	break;
+	case GDK_0: case GDK_KP_0:		index = 47;	break;
+	case GDK_period: case GDK_comma:
+	case GDK_KP_Decimal:			index = 48;	break;
+	case GDK_space: case GDK_KP_Space:	index = 49;	break;
+	case GDK_Return: case GDK_KP_Enter:	index = 50;	break;
+	default:
+		return FALSE;
+	}
+
+	button = &ui->buttons[index];
+
+	memset(&bev, 0, sizeof(GdkEventButton));
+
+	bev.time = event->time;
+	bev.button = 1;
+	bev.state = event->state;
+
+	save_in = GTK_BUTTON(button->button)->in_button;
+
+	switch (event->type) {
+	case GDK_KEY_PRESS:
+		bev.type = GDK_BUTTON_PRESS;
+		x49gp_ui_button_press(button->button, &bev, button);
+		GTK_BUTTON(button->button)->in_button = TRUE;
+		gtk_button_pressed(GTK_BUTTON(button->button));
+		GTK_BUTTON(button->button)->in_button = save_in;
+		break;
+	case GDK_KEY_RELEASE:
+		bev.type = GDK_BUTTON_RELEASE;
+		GTK_BUTTON(button->button)->in_button = TRUE;
+		gtk_button_released(GTK_BUTTON(button->button));
+		GTK_BUTTON(button->button)->in_button = save_in;
+		x49gp_ui_button_release(button->button, &bev, button);
+		break;
+	default:
+		return FALSE;
+	}
+
+	return TRUE;
+}
+
+static int
+x49gp_button_expose_event(GtkWidget *widget, GdkEventExpose *event,
+			  gpointer user_data)
+{
+	x49gp_ui_button_t *button = user_data;
+	int x, y;
+
+	x = widget->allocation.x;
+	y = widget->allocation.y;
+
+	if (GTK_WIDGET_STATE(widget) == GTK_STATE_ACTIVE)
+		y -= 1;
+
+	gdk_draw_drawable(widget->window, widget->style->black_gc,
+			  button->pixmap, 0, 0, x, y,
+			  widget->allocation.width, widget->allocation.height);
+
+	return FALSE;
+}
+
+static void
+x49gp_button_realize(GtkWidget *widget, gpointer user_data)
+{
+	x49gp_ui_button_t *button = user_data;
+	x49gp_ui_t *ui = button->x49gp->ui;
+	const x49gp_ui_key_t *key = button->key;
+	cairo_t *cr;
+	double xoff, yoff, width, height, ascent, descent;
+	unsigned int w, h;
+	int xoffset, yoffset, x, y;
+
+	xoffset = widget->allocation.x;
+	yoffset = widget->allocation.y;
+	w = widget->allocation.width;
+	h = widget->allocation.height;
+
+	button->pixmap = gdk_pixmap_new(widget->style->bg_pixmap[0], w, h, -1);
+
+	gdk_draw_drawable(button->pixmap, widget->style->black_gc,
+			  widget->style->bg_pixmap[0],
+			  xoffset, yoffset,
+			  0, 0, button->key->width, button->key->height);
+
+	xoffset += 2;
+	yoffset += 2;
+	w -= 4;
+	h -= 4;
+
+	cr = gdk_cairo_create(button->pixmap);
+	cairo_set_line_cap(cr, CAIRO_LINE_CAP_BUTT);
+	cairo_set_line_join(cr, CAIRO_LINE_JOIN_MITER);
+
+#if 0	/* Layout Debug */
+	cairo_set_source_rgb(cr, 1.0, 1.0, 1.0);
+	cairo_set_line_width(cr, 1.0);
+	cairo_move_to(cr, xoffset, yoffset);
+	cairo_line_to(cr, xoffset + w - 1, yoffset);
+	cairo_line_to(cr, xoffset + w - 1, yoffset + h - 1);
+	cairo_line_to(cr, xoffset, yoffset + h - 1);
+	cairo_close_path(cr);
+	cairo_stroke(cr);
+#endif
+
+	if (key->letter) {
+		x49gp_ui_text_size(cr, X49GP_UI_NORMAL_FONT, key->letter_size,
+				   &xoff, &yoff, &width, &height, &ascent, &descent,
+				   1, CAIRO_FONT_SLANT_NORMAL, key->font_weight,
+				   key->letter);
+
+		switch (key->layout) {
+		case UI_LAYOUT_LEFT:
+		default:
+			x = (int) floor(w - 1.0 - width - xoff + 0.5);
+			y = (int) floor((h - 1.0 + ascent) / 2.0 + 0.5);
+			w -= width;
+			break;
+		case UI_LAYOUT_LEFT_NO_SPACE:
+			x = (int) floor(w - 1.0 - width - xoff + 0.5);
+			y = (int) floor((h - 1.0 + ascent) / 2.0 + 0.5);
+			break;
+		case UI_LAYOUT_BELOW:
+			x = (int) floor((w - 1.0 - width) / 2.0 - xoff + 0.5);
+			y = (int) h - 1.0;
+			h -= ascent;
+			break;
+		}
+
+		x49gp_ui_draw_text(cr, &ui->colors[UI_COLOR_YELLOW],
+				   X49GP_UI_NORMAL_FONT, key->letter_size, 0.0,
+				   x + xoffset, y + yoffset,
+				   1, CAIRO_FONT_SLANT_NORMAL, key->font_weight,
+				   key->letter);
+	}
+
+	x49gp_ui_text_size(cr, X49GP_UI_NORMAL_FONT, key->font_size,
+			   &xoff, &yoff, &width, &height, &ascent, &descent,
+			   1, CAIRO_FONT_SLANT_NORMAL, key->font_weight,
+			   key->label);
+
+	x = (int) floor((w - 1.0 - width) / 2.0 - xoff + 0.5);
+	y = (int) floor((h - 1.0 + ascent) / 2.0 + 0.5);
+
+	x49gp_ui_draw_text(cr, &widget->style->text[0],
+			   X49GP_UI_NORMAL_FONT, key->font_size, 0.0,
+			   x + xoffset, y + yoffset,
+			   1, CAIRO_FONT_SLANT_NORMAL, key->font_weight,
+			   key->label);
+
+	cairo_destroy(cr);
+}
+
+static int
+x49gp_lcd_expose_event(GtkWidget *widget, GdkEventExpose *event,
+		       gpointer user_data)
+{
+	x49gp_t *x49gp = user_data;
+	x49gp_ui_t *ui = x49gp->ui;
+	GdkRectangle *rects;
+	int i, n;
+
+	gdk_region_get_rectangles(event->region, &rects, &n);
+	for (i = 0; i < n; i++) {
+		gdk_draw_drawable(widget->window, widget->style->black_gc,
+				  ui->lcd_pixmap,
+				  rects[i].x, rects[i].y,
+				  rects[i].x, rects[i].y,
+				  rects[i].width, rects[i].height);
+	}
+	g_free(rects);
+
+	return FALSE;
+}
+
+static int
+x49gp_lcd_configure_event(GtkWidget *widget, GdkEventConfigure *event,
+			  gpointer user_data)
+{
+	x49gp_t *x49gp = user_data;
+	x49gp_ui_t *ui = x49gp->ui;
+
+	if (NULL != ui->lcd_pixmap) {
+		return FALSE;
+	}
+
+	ui->ann_left = gdk_bitmap_create_from_data(ui->lcd_canvas->window,
+						   (char *) ann_left_bits,
+						   ann_left_width,
+						   ann_left_height);
+	ui->ann_right = gdk_bitmap_create_from_data(ui->lcd_canvas->window,
+						    (char *) ann_right_bits,
+						    ann_right_width,
+						    ann_right_height);
+	ui->ann_alpha = gdk_bitmap_create_from_data(ui->lcd_canvas->window,
+						    (char *) ann_alpha_bits,
+						    ann_alpha_width,
+						    ann_alpha_height);
+	ui->ann_battery = gdk_bitmap_create_from_data(ui->lcd_canvas->window,
+						      (char *) ann_battery_bits,
+						      ann_battery_width,
+						      ann_battery_height);
+	ui->ann_busy = gdk_bitmap_create_from_data(ui->lcd_canvas->window,
+						   (char *) ann_busy_bits,
+						   ann_busy_width,
+						   ann_busy_height);
+	ui->ann_io = gdk_bitmap_create_from_data(ui->lcd_canvas->window,
+						 (char *) ann_io_bits,
+						 ann_io_width,
+						 ann_io_height);
+
+	ui->ann_left_gc = gdk_gc_new(ui->lcd_canvas->window);
+	gdk_gc_copy(ui->ann_left_gc, widget->style->black_gc);
+	gdk_gc_set_ts_origin(ui->ann_left_gc, 11, 0);
+	gdk_gc_set_stipple(ui->ann_left_gc, ui->ann_left);
+	gdk_gc_set_fill(ui->ann_left_gc, GDK_STIPPLED);
+
+	ui->ann_right_gc = gdk_gc_new(ui->lcd_canvas->window);
+	gdk_gc_copy(ui->ann_right_gc, widget->style->black_gc);
+	gdk_gc_set_ts_origin(ui->ann_right_gc, 56, 0);
+	gdk_gc_set_stipple(ui->ann_right_gc, ui->ann_right);
+	gdk_gc_set_fill(ui->ann_right_gc, GDK_STIPPLED);
+
+	ui->ann_alpha_gc = gdk_gc_new(ui->lcd_canvas->window);
+	gdk_gc_copy(ui->ann_alpha_gc, widget->style->black_gc);
+	gdk_gc_set_ts_origin(ui->ann_alpha_gc, 101, 0);
+	gdk_gc_set_stipple(ui->ann_alpha_gc, ui->ann_alpha);
+	gdk_gc_set_fill(ui->ann_alpha_gc, GDK_STIPPLED);
+
+	ui->ann_battery_gc = gdk_gc_new(ui->lcd_canvas->window);
+	gdk_gc_copy(ui->ann_battery_gc, widget->style->black_gc);
+	gdk_gc_set_ts_origin(ui->ann_battery_gc, 146, 0);
+	gdk_gc_set_stipple(ui->ann_battery_gc, ui->ann_battery);
+	gdk_gc_set_fill(ui->ann_battery_gc, GDK_STIPPLED);
+
+	ui->ann_busy_gc = gdk_gc_new(ui->lcd_canvas->window);
+	gdk_gc_copy(ui->ann_busy_gc, widget->style->black_gc);
+	gdk_gc_set_ts_origin(ui->ann_busy_gc, 191, 0);
+	gdk_gc_set_stipple(ui->ann_busy_gc, ui->ann_busy);
+	gdk_gc_set_fill(ui->ann_busy_gc, GDK_STIPPLED);
+
+	ui->ann_io_gc = gdk_gc_new(ui->lcd_canvas->window);
+	gdk_gc_copy(ui->ann_io_gc, widget->style->black_gc);
+	gdk_gc_set_ts_origin(ui->ann_io_gc, 236, 0);
+	gdk_gc_set_stipple(ui->ann_io_gc, ui->ann_io);
+	gdk_gc_set_fill(ui->ann_io_gc, GDK_STIPPLED);
+
+
+	ui->lcd_pixmap = gdk_pixmap_new(ui->lcd_canvas->window,
+					ui->lcd_width, ui->lcd_height, -1);
+
+#if 0 /* Debug Symbols on LCD screen ;) */
+{
+	cairo_t *cr;
+
+	cr = gdk_cairo_create(ui->bg_pixmap);
+	cairo_set_line_cap(cr, CAIRO_LINE_CAP_BUTT);
+	cairo_set_line_join(cr, CAIRO_LINE_JOIN_MITER);
+
+#if 1
+	x49gp_ui_draw_text(cr, &widget->style->black,
+			   X49GP_UI_NORMAL_FONT, 100.0, 1.0,
+			   ui->lcd_x_offset + 10, ui->lcd_y_offset + 160,
+			   1, CAIRO_FONT_SLANT_NORMAL, CAIRO_FONT_WEIGHT_BOLD,
+			   "\\arrowleftdblfull");
+#else
+	x49gp_ui_dump_path(cr, X49GP_UI_NORMAL_FONT,
+			   1, CAIRO_FONT_SLANT_NORMAL, CAIRO_FONT_WEIGHT_BOLD,
+			   "\\arrowleftdblfull");
+#endif
+
+	cairo_destroy(cr);
+}
+#endif
+
+	gdk_draw_drawable(ui->lcd_pixmap, widget->style->black_gc,
+			  ui->bg_pixmap, ui->lcd_x_offset, ui->lcd_y_offset,
+			  0, 0, ui->lcd_width, ui->lcd_height);
+
+	return FALSE;
+}
+
+static int
+x49gp_window_configure_event(GtkWidget *widget, GdkEventConfigure *event,
+			     gpointer user_data)
+{
+	x49gp_t *x49gp = user_data;
+	x49gp_ui_t *ui = x49gp->ui;
+	const x49gp_ui_key_t *key;
+	cairo_t *cr;
+	int left_color;
+	int right_color;
+	int below_color;
+	int xl, xr, a;
+	int wl = 0, wr = 0;
+	int hl = 0, hr = 0;
+	int dl = 0, dr = 0;
+	int i;
+
+	if (NULL != ui->bg_pixmap) {
+		return FALSE;
+	}
+
+	ui->bg_pixmap = gdk_pixmap_new(widget->window,
+				       ui->width, ui->height, -1);
+
+	gdk_draw_pixbuf(ui->bg_pixmap, widget->style->black_gc,
+			ui->bg_pixbuf, 0, 0, 0, 0, ui->width, ui->height,
+			GDK_RGB_DITHER_NORMAL, 0, 0);
+
+	cr = gdk_cairo_create(ui->bg_pixmap);
+	cairo_set_line_cap(cr, CAIRO_LINE_CAP_BUTT);
+	cairo_set_line_join(cr, CAIRO_LINE_JOIN_MITER);
+
+	switch (ui->calculator) {
+	default:
+		ui->calculator = UI_CALCULATOR_HP49GP;
+		/* fall through */
+
+	case UI_CALCULATOR_HP49GP:
+		x49gp_ui_draw_text(cr, &widget->style->black,
+				   X49GP_UI_NORMAL_FONT, 15.0, 0.0,
+				   38, 42, 2,
+				   CAIRO_FONT_SLANT_NORMAL,
+				   CAIRO_FONT_WEIGHT_BOLD,
+				   "hp",
+				   CAIRO_FONT_SLANT_NORMAL,
+				   CAIRO_FONT_WEIGHT_NORMAL,
+				   " 49g+");
+
+		x49gp_ui_draw_text(cr, &widget->style->black,
+				   X49GP_UI_NORMAL_FONT, 13.0, 0.0,
+				   38, 56, 1,
+				   CAIRO_FONT_SLANT_NORMAL,
+				   CAIRO_FONT_WEIGHT_NORMAL,
+				   "graphing calculator");
+
+		x49gp_ui_draw_symbol(cr, &widget->style->black, 10.0, 0.0, TRUE,
+				     138, 25, symbol_get_by_name("triangleup"));
+
+		left_color = UI_COLOR_GREEN;
+		right_color = UI_COLOR_RED;
+		below_color = UI_COLOR_BLACK;
+		break;
+
+	case UI_CALCULATOR_HP50G:
+		x49gp_ui_draw_text(cr, &widget->style->white,
+				   X49GP_UI_NORMAL_FONT, 15.0, 0.0,
+				   38, 42, 2,
+				   CAIRO_FONT_SLANT_NORMAL,
+				   CAIRO_FONT_WEIGHT_NORMAL,
+				   "HP",
+				   CAIRO_FONT_SLANT_NORMAL,
+				   CAIRO_FONT_WEIGHT_NORMAL,
+				   " 50g");
+
+		x49gp_ui_draw_text(cr, &widget->style->white,
+				   X49GP_UI_NORMAL_FONT, 13.0, 0.0,
+				   38, 56, 1,
+				   CAIRO_FONT_SLANT_NORMAL,
+				   CAIRO_FONT_WEIGHT_NORMAL,
+				   "Graphing Calculator");
+
+		x49gp_ui_draw_symbol(cr, &widget->style->white, 10.0, 0.0, TRUE,
+				     168, 25, symbol_get_by_name("triangleup"));
+
+		left_color = UI_COLOR_WHITE;
+		right_color = UI_COLOR_ORANGE;
+		below_color = UI_COLOR_BLUE;
+		break;
+	}
+
+	cairo_destroy(cr);
+
+	for (i = 0; i < ui->nr_buttons; i++) {
+		key = &x49gp_ui_keys[i];
+		key = &x50g_ui_keys[i];
+
+		if (key->left) {
+			bitmap_font_text_size(&tiny_font, key->left, &wl, &hl, &a, &dl);
+			if (!key->right) {
+				xl = key->x + (key->width - wl) / 2;
+				bitmap_font_draw_text(ui->bg_pixmap,
+						&ui->colors[left_color],
+						&tiny_font,
+						ui->kb_x_offset + xl,
+						ui->kb_y_offset + key->y - hl + dl + 1,
+						key->left);
+			}
+		}
+
+		if (key->right) {
+			bitmap_font_text_size(&tiny_font, key->right, &wr, &hr, &a, &dr);
+			if (!key->left) {
+				xr = key->x + (key->width - wr) / 2;
+				bitmap_font_draw_text(ui->bg_pixmap,
+						&ui->colors[right_color],
+						&tiny_font,
+						ui->kb_x_offset + xr,
+						ui->kb_y_offset + key->y - hr + dr + 1,
+						key->right);
+			}
+		}
+
+		if (key->left && key->right) {
+			xl = key->x;
+			xr = key->x + key->width - 1 - wr;
+
+			if (wl + wr > key->width - 4) {
+				xl += (key->width - 4 - (wl + wr)) / 2;
+				xr -= (key->width - 4 - (wl + wr)) / 2;
+			}
+
+			bitmap_font_draw_text(ui->bg_pixmap,
+					&ui->colors[left_color],
+					&tiny_font,
+					ui->kb_x_offset + xl,
+					ui->kb_y_offset + key->y - hl + dl + 1,
+					key->left);
+
+			bitmap_font_draw_text(ui->bg_pixmap,
+					&ui->colors[right_color],
+					&tiny_font,
+					ui->kb_x_offset + xr,
+					ui->kb_y_offset + key->y - hr + dr + 1,
+					key->right);
+		}
+
+		if (key->below) {
+			bitmap_font_text_size(&tiny_font, key->below, &wl, &hl, &a, &dl);
+			xl = key->x + (key->width - wl) / 2;
+
+			bitmap_font_draw_text(ui->bg_pixmap,
+					&ui->colors[below_color],
+					&tiny_font,
+					ui->kb_x_offset + xl,
+					ui->kb_y_offset + key->y + key->height + 2,
+					key->below);
+		}
+
+#if 0	/* Debug Button Layout */
+		gdk_draw_rectangle(ui->bg_pixmap, ui->window->style->white_gc,
+				   FALSE,
+				   ui->kb_x_offset + key->x,
+				   ui->kb_y_offset + key->y,
+				   key->width, key->height);
+#endif
+	}
+
+	gdk_window_set_back_pixmap(widget->window, ui->bg_pixmap, FALSE);
+
+	return FALSE;
+}
+
+static gboolean
+x49gp_window_button_press(GtkWidget *widget, GdkEventButton *event,
+			  gpointer user_data)
+{
+#ifdef DEBUG_X49GP_UI
+fprintf(stderr, "%s:%u: type %u, button %u\n", __FUNCTION__, __LINE__, event->type, event->button);
+#endif
+
+	gdk_window_focus(widget->window, event->time);
+	gdk_window_raise(widget->window);
+
+	if (event->type != GDK_BUTTON_PRESS)
+		return FALSE;
+
+	if (event->button != 1)
+		return FALSE;
+
+	gdk_window_begin_move_drag(widget->window, event->button,
+				   event->x_root, event->y_root,
+				   event->time);
+
+	return FALSE;
+}
+
+static void
+x49gp_ui_quit(GtkWidget *widget, GdkEvent *event, gpointer user_data)
+{
+	x49gp_t *x49gp = user_data;
+
+	x49gp->arm_exit++;
+}
+
+static void
+x49gp_ui_place_at(x49gp_t *x49gp, GtkFixed *fixed, GtkWidget *widget,
+		  gint x, gint y, gint width, gint height)
+{
+	gtk_widget_set_size_request(widget, width, height);
+	gtk_fixed_put(fixed, widget, x, y);
+}
+
+static int
+gui_init(x49gp_module_t *module)
+{
+	x49gp_t *x49gp = module->x49gp;
+	x49gp_ui_t *ui;
+
+	ui = malloc(sizeof(x49gp_ui_t));
+	if (NULL == ui) {
+		fprintf(stderr, "%s: %s:%u: Out of memory\n",
+			x49gp->progname, __FUNCTION__, __LINE__);
+		return -ENOMEM;
+	}
+	memset(ui, 0, sizeof(x49gp_ui_t));
+
+	ui->nr_buttons = X49GP_UI_NR_KEYS;
+	ui->buttons = malloc(ui->nr_buttons * sizeof(x49gp_ui_button_t));
+	if (NULL == ui->buttons) {
+		fprintf(stderr, "%s: %s:%u: Out of memory\n",
+			x49gp->progname, __FUNCTION__, __LINE__);
+		free(ui);
+		return -ENOMEM;
+	}
+	memset(ui->buttons, 0, ui->nr_buttons * sizeof(x49gp_ui_button_t));
+
+	module->user_data = ui;
+	x49gp->ui = ui;
+
+	return 0;
+}
+
+static int
+gui_exit(x49gp_module_t *module)
+{
+	return 0;
+}
+
+static int
+gui_reset(x49gp_module_t *module, x49gp_reset_t reset)
+{
+	return 0;
+}
+
+static int
+gui_load(x49gp_module_t *module, GKeyFile *keyfile)
+{
+	x49gp_t *x49gp = module->x49gp;
+	x49gp_ui_t *ui = module->user_data;
+	x49gp_ui_button_t *button;
+	const x49gp_ui_key_t *key;
+	GError *gerror = NULL;
+	GdkBitmap *shape;
+	char *imagefile;
+	char *name;
+	int i;
+
+	imagefile = x49gp_module_get_filename(module, keyfile, "image");
+	x49gp_module_get_string(module, keyfile, "name", "hp49g+", &name);
+
+	if (!strcmp(name, "hp49g+")) {
+		ui->calculator = UI_CALCULATOR_HP49GP;
+	} else if (!strcmp(name, "hp50g")) {
+		ui->calculator = UI_CALCULATOR_HP50G;
+	} else {
+		ui->calculator = 0;
+	}
+
+	gdk_pixbuf_get_file_info(imagefile, &ui->width, &ui->height);
+
+	ui->lcd_width = 131 * 2;
+	ui->lcd_top_margin = 16;
+	ui->lcd_height = 80 * 2 + ui->lcd_top_margin;
+
+	ui->lcd_x_offset = (ui->width - ui->lcd_width) / 2;
+	ui->lcd_y_offset = 69;
+
+	ui->kb_x_offset = 36;
+	ui->kb_y_offset = 301;
+
+	ui->bg_pixbuf = gdk_pixbuf_new_from_file(imagefile, &gerror);
+
+
+	ui->window = gtk_window_new(GTK_WINDOW_TOPLEVEL);
+	gtk_widget_set(ui->window, "can-focus", TRUE, NULL);
+	gtk_widget_set(ui->window, "accept-focus", TRUE, NULL);
+	gtk_widget_set(ui->window, "focus-on-map", TRUE, NULL);
+	gtk_widget_set(ui->window, "resizable", FALSE, NULL);
+	gtk_window_set_decorated(GTK_WINDOW(ui->window), FALSE);
+
+	gtk_widget_set_name(ui->window, name);
+	gtk_window_set_title(GTK_WINDOW(ui->window), name);
+
+//	gtk_window_set_icon(GTK_WINDOW(ui->window), ui->bg_pixbuf);
+
+	gdk_pixbuf_render_pixmap_and_mask(ui->bg_pixbuf, NULL, &shape, 255);
+
+	gtk_widget_set_size_request(ui->window, ui->width, ui->height);
+	gtk_widget_shape_combine_mask(ui->window, shape, 0, 0);
+
+	g_object_unref(shape);
+
+	gtk_widget_realize(ui->window);
+
+	ui->shapes[UI_SHAPE_BUTTON_TINY] = gdk_bitmap_create_from_data(NULL,
+						(char *) button_tiny_bits,
+						button_tiny_width,
+						button_tiny_height);
+	ui->shapes[UI_SHAPE_BUTTON_SMALL] = gdk_bitmap_create_from_data(NULL,
+						(char *) button_small_bits,
+						button_small_width,
+						button_small_height);
+	ui->shapes[UI_SHAPE_BUTTON_NORMAL] = gdk_bitmap_create_from_data(NULL,
+						(char *) button_normal_bits,
+						button_normal_width,
+						button_normal_height);
+	ui->shapes[UI_SHAPE_BUTTON_LARGE] = gdk_bitmap_create_from_data(NULL,
+						(char *) button_large_bits,
+						button_large_width,
+						button_large_height);
+	ui->shapes[UI_SHAPE_BUTTON_ROUND] = gdk_bitmap_create_from_data(NULL,
+						(char *) button_round_bits,
+						button_round_width,
+						button_round_height);
+
+
+	ui->fixed = gtk_fixed_new();
+	gtk_container_add(GTK_CONTAINER(ui->window), ui->fixed);
+
+	ui->background = gtk_drawing_area_new();
+	gtk_drawing_area_size(GTK_DRAWING_AREA(ui->background),
+			      ui->width, ui->height);
+	x49gp_ui_place_at(x49gp, GTK_FIXED(ui->fixed), ui->background,
+			  0, 0, ui->width, ui->height);
+
+	x49gp_ui_color_init(&ui->colors[UI_COLOR_BLACK], 0x00, 0x00, 0x00);
+	x49gp_ui_color_init(&ui->colors[UI_COLOR_WHITE], 0xff, 0xff, 0xff);
+	x49gp_ui_color_init(&ui->colors[UI_COLOR_YELLOW], 0xfa, 0xe8, 0x2c);
+	x49gp_ui_color_init(&ui->colors[UI_COLOR_RED], 0x8e, 0x25, 0x18);
+	x49gp_ui_color_init(&ui->colors[UI_COLOR_GREEN], 0x14, 0x4d, 0x49);
+	x49gp_ui_color_init(&ui->colors[UI_COLOR_SILVER], 0xe0, 0xe0, 0xe0);
+	x49gp_ui_color_init(&ui->colors[UI_COLOR_ORANGE], 0xc0, 0x6e, 0x60);
+	x49gp_ui_color_init(&ui->colors[UI_COLOR_BLUE], 0x40, 0x60, 0xa4);
+
+
+	ui->lcd_canvas = gtk_drawing_area_new();
+	gtk_drawing_area_size(GTK_DRAWING_AREA(ui->lcd_canvas),
+			      ui->lcd_width, ui->lcd_height);
+	x49gp_ui_place_at(x49gp, GTK_FIXED(ui->fixed), ui->lcd_canvas,
+			  ui->lcd_x_offset, ui->lcd_y_offset,
+			  ui->lcd_width, ui->lcd_height);
+
+
+	for (i = 0; i < ui->nr_buttons; i++) {
+		key = &x49gp_ui_keys[i];
+		key = &x50g_ui_keys[i];
+		button = &ui->buttons[i];
+
+		button->x49gp = x49gp;
+		button->key = key;
+
+		button->button = gtk_button_new();
+		gtk_widget_set_size_request(button->button,
+					    key->width, key->height);
+		gtk_widget_set(button->button, "can-focus", FALSE, NULL);
+
+		x49gp_ui_button_pixmaps_init(x49gp, button, key->color);
+
+		if (key->label) {
+			button->label = gtk_label_new("");
+			gtk_widget_set_style(button->label,
+					     button->button->style);
+			gtk_container_add(GTK_CONTAINER(button->button),
+					  button->label);
+
+			g_signal_connect(G_OBJECT(button->label),
+					 "expose-event",
+			 		 G_CALLBACK(x49gp_button_expose_event),
+					 button);
+
+			g_signal_connect_after(G_OBJECT(button->label),
+					 "realize",
+					 G_CALLBACK(x49gp_button_realize),
+					 button);
+		}
+
+		button->box = gtk_event_box_new();
+		gtk_event_box_set_visible_window(GTK_EVENT_BOX(button->box),
+						 TRUE);
+		gtk_event_box_set_above_child(GTK_EVENT_BOX(button->box),
+					      FALSE);
+		gtk_widget_shape_combine_mask(button->box,
+					      ui->shapes[key->shape], 0, 0);
+		gtk_container_add(GTK_CONTAINER(button->box), button->button);
+
+
+		x49gp_ui_place_at(x49gp, GTK_FIXED(ui->fixed), button->box,
+				  ui->kb_x_offset + key->x,
+				  ui->kb_y_offset + key->y,
+				  key->width, key->height);
+
+		g_signal_connect(G_OBJECT(button->button),
+				 "button-press-event",
+				 G_CALLBACK(x49gp_ui_button_press), button);
+
+		g_signal_connect(G_OBJECT(button->button),
+				 "button-release-event",
+				 G_CALLBACK(x49gp_ui_button_release), button);
+
+		g_signal_connect(G_OBJECT(button->button),
+				 "leave-notify-event",
+				 G_CALLBACK(x49gp_ui_button_leave), button);
+
+		gtk_widget_add_events(button->button,
+				      GDK_BUTTON_PRESS_MASK |
+				      GDK_BUTTON_RELEASE_MASK |
+				      GDK_LEAVE_NOTIFY_MASK);
+	}
+
+	g_signal_connect(G_OBJECT(ui->background), "configure-event",
+			 G_CALLBACK(x49gp_window_configure_event), x49gp);
+
+	g_signal_connect(G_OBJECT(ui->lcd_canvas), "expose-event",
+			 G_CALLBACK(x49gp_lcd_expose_event), x49gp);
+	g_signal_connect(G_OBJECT(ui->lcd_canvas), "configure-event",
+			 G_CALLBACK(x49gp_lcd_configure_event), x49gp);
+
+	g_signal_connect(G_OBJECT(ui->window), "delete-event",
+			 G_CALLBACK(x49gp_ui_quit), x49gp);
+	g_signal_connect(G_OBJECT(ui->window), "destroy",
+			 G_CALLBACK(x49gp_ui_quit), x49gp);
+
+	g_signal_connect(G_OBJECT(ui->window), "key-press-event",
+			 G_CALLBACK(x49gp_ui_key_event), x49gp);
+	g_signal_connect(G_OBJECT(ui->window), "key-release-event",
+			 G_CALLBACK(x49gp_ui_key_event), x49gp);
+
+	g_signal_connect(G_OBJECT(ui->window), "button-press-event",
+			 G_CALLBACK(x49gp_window_button_press), x49gp);
+
+	gtk_widget_add_events(ui->window,
+			      GDK_BUTTON_PRESS_MASK |
+			      GDK_KEY_PRESS_MASK |
+			      GDK_KEY_RELEASE_MASK);
+
+	gtk_widget_show_all(ui->window);
+	return 0;
+}
+
+static int
+gui_save(x49gp_module_t *module, GKeyFile *keyfile)
+{
+	return 0;
+}
+
+int
+x49gp_ui_init(x49gp_t *x49gp)
+{
+	x49gp_module_t *module;
+
+	if (x49gp_module_init(x49gp, "gui", gui_init, gui_exit,
+			      gui_reset, gui_load, gui_save, NULL,
+			      &module)) {
+		return -1;
+	}
+
+	return x49gp_module_register(module);
+}

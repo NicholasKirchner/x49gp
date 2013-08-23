@@ -1,0 +1,161 @@
+K 25
+svn:wc:ra_dav:version-url
+V 37
+/p/x49gp/code/!svn/ver/1/qemu/patches
+END
+qemu-0.9.0-enforce-16byte-stack-boundary.patch
+K 25
+svn:wc:ra_dav:version-url
+V 84
+/p/x49gp/code/!svn/ver/1/qemu/patches/qemu-0.9.0-enforce-16byte-stack-boundary.patch
+END
+q_block.c_hdled_1.diff
+K 25
+svn:wc:ra_dav:version-url
+V 60
+/p/x49gp/code/!svn/ver/1/qemu/patches/q_block.c_hdled_1.diff
+END
+qemu-0.9.0-sparc-load-store-le.patch
+K 25
+svn:wc:ra_dav:version-url
+V 74
+/p/x49gp/code/!svn/ver/1/qemu/patches/qemu-0.9.0-sparc-load-store-le.patch
+END
+qemu-0.9.0-sparc-clobber.patch
+K 25
+svn:wc:ra_dav:version-url
+V 68
+/p/x49gp/code/!svn/ver/1/qemu/patches/qemu-0.9.0-sparc-clobber.patch
+END
+qemu-0.9.0-x49gp-arm-semihosting.patch
+K 25
+svn:wc:ra_dav:version-url
+V 76
+/p/x49gp/code/!svn/ver/1/qemu/patches/qemu-0.9.0-x49gp-arm-semihosting.patch
+END
+qemu-0.9.0-gcc4.patch
+K 25
+svn:wc:ra_dav:version-url
+V 59
+/p/x49gp/code/!svn/ver/1/qemu/patches/qemu-0.9.0-gcc4.patch
+END
+q_vga.c_02.diff
+K 25
+svn:wc:ra_dav:version-url
+V 53
+/p/x49gp/code/!svn/ver/1/qemu/patches/q_vga.c_02.diff
+END
+q_host-cocoa_02.diff
+K 25
+svn:wc:ra_dav:version-url
+V 58
+/p/x49gp/code/!svn/ver/1/qemu/patches/q_host-cocoa_02.diff
+END
+qemu-0.9.0-x49gp-arm-mmu.patch
+K 25
+svn:wc:ra_dav:version-url
+V 68
+/p/x49gp/code/!svn/ver/1/qemu/patches/qemu-0.9.0-x49gp-arm-mmu.patch
+END
+qemu-0.9.0-sparc-compile-flags.patch
+K 25
+svn:wc:ra_dav:version-url
+V 74
+/p/x49gp/code/!svn/ver/1/qemu/patches/qemu-0.9.0-sparc-compile-flags.patch
+END
+qemu-0.9.0-arm-shift.patch
+K 25
+svn:wc:ra_dav:version-url
+V 64
+/p/x49gp/code/!svn/ver/1/qemu/patches/qemu-0.9.0-arm-shift.patch
+END
+qemu-0.8.0-osx-bugfix.patch
+K 25
+svn:wc:ra_dav:version-url
+V 65
+/p/x49gp/code/!svn/ver/1/qemu/patches/qemu-0.8.0-osx-bugfix.patch
+END
+qemu-0.9.0-sparc-register.patch
+K 25
+svn:wc:ra_dav:version-url
+V 69
+/p/x49gp/code/!svn/ver/1/qemu/patches/qemu-0.9.0-sparc-register.patch
+END
+qemu-0.7.2-dyngen-check-stack-clobbers.patch
+K 25
+svn:wc:ra_dav:version-url
+V 82
+/p/x49gp/code/!svn/ver/1/qemu/patches/qemu-0.7.2-dyngen-check-stack-clobbers.patch
+END
+q_block_int.h_hdled_1.diff
+K 25
+svn:wc:ra_dav:version-url
+V 64
+/p/x49gp/code/!svn/ver/1/qemu/patches/q_block_int.h_hdled_1.diff
+END
+qemu-0.9.0-x49gp-debug-unassigned.patch
+K 25
+svn:wc:ra_dav:version-url
+V 77
+/p/x49gp/code/!svn/ver/1/qemu/patches/qemu-0.9.0-x49gp-debug-unassigned.patch
+END
+qemu-0.9.0-i386-FORCE_RET.patch
+K 25
+svn:wc:ra_dav:version-url
+V 69
+/p/x49gp/code/!svn/ver/1/qemu/patches/qemu-0.9.0-i386-FORCE_RET.patch
+END
+qemu-2ndbootdevice_04.diff
+K 25
+svn:wc:ra_dav:version-url
+V 64
+/p/x49gp/code/!svn/ver/1/qemu/patches/qemu-2ndbootdevice_04.diff
+END
+qemu-0.7.2-gcc4-opts.patch
+K 25
+svn:wc:ra_dav:version-url
+V 64
+/p/x49gp/code/!svn/ver/1/qemu/patches/qemu-0.7.2-gcc4-opts.patch
+END
+qemu-0.9.0-x49gp-block.patch
+K 25
+svn:wc:ra_dav:version-url
+V 66
+/p/x49gp/code/!svn/ver/1/qemu/patches/qemu-0.9.0-x49gp-block.patch
+END
+qemu-0.9.0-qcow2.diff
+K 25
+svn:wc:ra_dav:version-url
+V 59
+/p/x49gp/code/!svn/ver/1/qemu/patches/qemu-0.9.0-qcow2.diff
+END
+qemu-0.9.0-osx-intel-port.patch
+K 25
+svn:wc:ra_dav:version-url
+V 69
+/p/x49gp/code/!svn/ver/1/qemu/patches/qemu-0.9.0-osx-intel-port.patch
+END
+qemu-0.9.0-x49gp-build-libqemu.patch
+K 25
+svn:wc:ra_dav:version-url
+V 74
+/p/x49gp/code/!svn/ver/1/qemu/patches/qemu-0.9.0-x49gp-build-libqemu.patch
+END
+qemu-0.8.0-gcc4-hacks.patch
+K 25
+svn:wc:ra_dav:version-url
+V 65
+/p/x49gp/code/!svn/ver/1/qemu/patches/qemu-0.8.0-gcc4-hacks.patch
+END
+qemu-0.9.0-x49gp-phys_ram_dirty.patch
+K 25
+svn:wc:ra_dav:version-url
+V 75
+/p/x49gp/code/!svn/ver/1/qemu/patches/qemu-0.9.0-x49gp-phys_ram_dirty.patch
+END
+qemu-0.9.0-x49gp-arm-dump-state.patch
+K 25
+svn:wc:ra_dav:version-url
+V 75
+/p/x49gp/code/!svn/ver/1/qemu/patches/qemu-0.9.0-x49gp-arm-dump-state.patch
+END

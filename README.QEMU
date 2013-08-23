@@ -1,0 +1,1 @@
+Fix ldX_le/stX_le on sparc: use ASI_LE
