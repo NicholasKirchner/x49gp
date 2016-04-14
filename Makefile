@@ -109,7 +109,7 @@ LDLIBS = $(X49GP_LIBS) $(GDB_LIBS) $(COCOA_LIBS)
 MAKEDEPEND = $(CC) -MM
 
 CFLAGS += $(shell pkg-config --cflags gtk+-2.0)
-LDFLAGS += $(shell pkg-config --libs gtk+-2.0)
+LDFLAGS += -lm -lz $(shell pkg-config --libs gtk+-2.0)
 
 ifdef QEMU_OLD
 export MAKE MAKEDEPEND CC LD AR RANLIB CFLAGS LDFLAGS
@@ -169,10 +169,10 @@ endif
 
 ifdef QEMU_OLD
 $(TARGET): $(OBJS) $(VVFATOBJS) $(QEMU)/arm-softmmu/libqemu.a
-	$(CC) -Wl,--no-as-needed $(LDFLAGS) -o $@ $(OBJS) $(VVFATOBJS) $(LDLIBS)
+	$(CC) -Wl,--no-as-needed  -o $@ $(OBJS) $(VVFATOBJS) $(LDFLAGS) $(LDLIBS)
 else
 $(TARGET): $(OBJS) $(VVFATOBJS) $(X49GP_LIBS)
-	$(CC) -Wl,--no-as-needed $(LDFLAGS) -o $@ $(OBJS) $(VVFATOBJS) $(LDLIBS)
+	$(CC) -Wl,--no-as-needed  -o $@ $(OBJS) $(VVFATOBJS) $(LDFLAGS) $(LDLIBS)
 endif
 
 flash-49g+: $(BOOT49GP) flash-noboot

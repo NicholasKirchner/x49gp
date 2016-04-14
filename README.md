@@ -1,3 +1,9 @@
+Additional Note: April 4, 2016
+
+Modified code so that it will compile on Ubuntu 14.04.
+
+--Currell Berry
+
 Additional note: August 22, 2013
 
 Updated this so that it'll compile on Ubuntu 12.04.
