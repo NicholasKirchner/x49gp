@@ -1,4 +1,4 @@
-Additional Note: April 4, 2016
+Additional Note: April 14, 2016
 
 Modified code so that it will compile on Ubuntu 14.04.
 
