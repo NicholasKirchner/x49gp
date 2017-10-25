@@ -109,7 +109,7 @@ LDLIBS = $(X49GP_LIBS) $(GDB_LIBS) $(COCOA_LIBS)
 MAKEDEPEND = $(CC) -MM
 
 CFLAGS += $(shell pkg-config --cflags gtk+-2.0)
-LDFLAGS += $(shell pkg-config --libs gtk+-2.0)
+LDLIBS += $(shell pkg-config --libs gtk+-2.0) -lz -lm
 
 ifdef QEMU_OLD
 export MAKE MAKEDEPEND CC LD AR RANLIB CFLAGS LDFLAGS
