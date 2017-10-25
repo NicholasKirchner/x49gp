@@ -126,18 +126,6 @@ Run:
 
 ------------------------------------------------------------------------
 
-Where's the key labels?
-
-Good question.  This is a bug when compiled for 64-bit platforms.
-
-Hack:
-
-```
-cp hp50g-hack.png hp50g.png
-```
-
-------------------------------------------------------------------------
-
 Do stuff, e.g.:
 
 Restore backup:

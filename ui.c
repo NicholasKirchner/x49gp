@@ -1077,7 +1077,7 @@ x49gp_ui_text_size(cairo_t *cr, const char *family, double size,
 		   double *ascent, double *descent,
 		   int n, ...)
 {
-	va_list ap;
+	va_list ap0, ap1;
 	cairo_font_extents_t font_extents;
 	cairo_font_weight_t weight;
 	cairo_font_slant_t slant;
@@ -1088,9 +1088,12 @@ x49gp_ui_text_size(cairo_t *cr, const char *family, double size,
 	if (n < 1)
 		return;
 
-	va_start(ap, n);
+	va_start(ap0, n);
+	va_copy(ap1, ap0);
 
-	x49gp_ui_vtext_path(cr, family, size, 0.0, 0.0, n, ap);
+	x49gp_ui_vtext_path(cr, family, size, 0.0, 0.0, n, ap0);
+
+	va_end(ap0);
 
 	cairo_fill_extents(cr, &x1, &y1, &x2, &y2);
 
@@ -1101,9 +1104,10 @@ x49gp_ui_text_size(cairo_t *cr, const char *family, double size,
 	d = 0.0;
 
 	for (i = 0; i < n; i++) {
-		slant = va_arg(ap, cairo_font_slant_t);
-		weight = va_arg(ap, cairo_font_weight_t);
-		text = va_arg(ap, const char *);
+		slant = va_arg(ap1, cairo_font_slant_t);
+		weight = va_arg(ap1, cairo_font_weight_t);
+		text = va_arg(ap1, const char *);
+		(void) text;
 
 		cairo_select_font_face(cr, family, slant, weight);
 		cairo_set_font_size(cr, size);
@@ -1127,7 +1131,7 @@ x49gp_ui_text_size(cairo_t *cr, const char *family, double size,
 	*ascent = a;
 	*descent = d;
 
-	va_end(ap);
+	va_end(ap1);
 }
 
 static void
@@ -1467,7 +1471,7 @@ x49gp_ui_button_press(GtkWidget *widget, GdkEventButton *event,
 	x49gp_t *x49gp = button->x49gp;
 
 #ifdef DEBUG_X49GP_UI
-fprintf(stderr, "%s:%u: type %u, button %u\n", __FUNCTION__, __LINE__, event->type, event->button);
+	fprintf(stderr, "%s:%u: type %u, button %u\n", __FUNCTION__, __LINE__, event->type, event->button);
 #endif
 
 	if (event->type != GDK_BUTTON_PRESS)
@@ -1587,7 +1591,7 @@ x49gp_ui_key_event(GtkWidget *widget, GdkEventKey *event, gpointer user_data)
 	int index;
 
 #ifdef DEBUG_X49GP_UI
-fprintf(stderr, "%s:%u: type %u, keyval %04x\n", __FUNCTION__, __LINE__, event->type, event->keyval);
+	fprintf(stderr, "%s:%u: type %u, keyval %04x\n", __FUNCTION__, __LINE__, event->type, event->keyval);
 #endif
 
 	switch (event->keyval) {
@@ -2108,7 +2112,7 @@ x49gp_window_button_press(GtkWidget *widget, GdkEventButton *event,
 			  gpointer user_data)
 {
 #ifdef DEBUG_X49GP_UI
-fprintf(stderr, "%s:%u: type %u, button %u\n", __FUNCTION__, __LINE__, event->type, event->button);
+	fprintf(stderr, "%s:%u: type %u, button %u\n", __FUNCTION__, __LINE__, event->type, event->button);
 #endif
 
 	gdk_window_focus(widget->window, event->time);
