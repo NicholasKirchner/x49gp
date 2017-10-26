@@ -34,13 +34,13 @@ X49GP_DEBUG = \
 DEBUG = -g # -pg
 
 #2.09
-FIRMWARE = 4950_92.bin
+#FIRMWARE = 4950_92.bin
 #2.10-7
 #FIRMWARE = hp49g-u.bin
 #HPGCC3 (copy HPGCC3 ROM first)
 #FIRMWARE = 49_hpgcc.bin
 #2.15
-#FIRMWARE = 4950_215.bin
+FIRMWARE = 4950_215.bin
 
 BOOT49GP = boot-49g+.bin
 BOOT50G = boot-50g.bin
