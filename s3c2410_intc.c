@@ -138,12 +138,12 @@ intmod_put_word(s3c2410_intc_t *intc, uint32_t data)
 static void
 intmsk_put_word(s3c2410_intc_t *intc, uint32_t data)
 {
-	uint32_t change;
 #ifdef DEBUG_X49GP_ENABLE_IRQ
+	uint32_t change;
 	int i;
-#endif
 
 	change = intc->intmsk ^ data;
+#endif
 
 	intc->intmsk = data | 0x01000040;
 
@@ -525,8 +525,10 @@ s3c2410_intc_read(void *opaque, target_phys_addr_t offset)
 static void
 s3c2410_intc_write(void *opaque, target_phys_addr_t offset, uint32_t data)
 {
-	s3c2410_intc_t *intc = opaque;
+#ifdef DEBUG_S3C2410_INTC
 	s3c2410_offset_t *reg;
+#endif
+	s3c2410_intc_t *intc = opaque;
 
 #ifdef QEMU_OLD
 	offset -= S3C2410_INTC_BASE;
@@ -535,9 +537,9 @@ s3c2410_intc_write(void *opaque, target_phys_addr_t offset, uint32_t data)
 		return;
 	}
 
+#ifdef DEBUG_S3C2410_INTC
 	reg = S3C2410_OFFSET_ENTRY(intc, offset);
 
-#ifdef DEBUG_S3C2410_INTC
 	printf("write %s [%08x] %s [%08x] data %08x\n",
 		"s3c2410-intc", S3C2410_INTC_BASE,
 		reg->name, offset, data);

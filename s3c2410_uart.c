@@ -188,11 +188,10 @@ s3c2410_uart_write(void *opaque, target_phys_addr_t offset, uint32_t data)
 	s3c2410_uart_reg_t *uart_regs = opaque;
 	x49gp_t *x49gp = uart_regs->x49gp;
 	s3c2410_offset_t *reg;
-	uint32_t ubrdivn, baud;
 	uint32_t base;
 #ifdef DEBUG_S3C2410_UART
 	const char *module;
-	uint32_t mod_offset;
+	uint32_t mod_offset, ubrdivn, baud;
 #endif
 
 	base = (offset & 0x0000c000) >> 14;
@@ -239,20 +238,18 @@ s3c2410_uart_write(void *opaque, target_phys_addr_t offset, uint32_t data)
 		break;
 
 	case S3C2410_UART0_UBRDIV:
+#ifdef DEBUG_S3C2410_UART
 		ubrdivn = (data >> 0) & 0xffff;
 		if (uart_regs->ucon & (1 << 10)) {
 			baud = x49gp->UCLK / 16 / (ubrdivn + 1);
-#ifdef DEBUG_S3C2410_UART
 			printf("%s: UEXTCLK %u, ubrdivn %u, baud %u\n",
 				module, x49gp->UCLK, ubrdivn, baud);
-#endif
 		} else {
 			baud = x49gp->PCLK / 16 / (ubrdivn + 1);
-#ifdef DEBUG_S3C2410_UART
 			printf("%s: PCLK %u, ubrdivn %u, baud %u\n",
 				module, x49gp->PCLK, ubrdivn, baud);
-#endif
 		}
+#endif
 		break;
 
 	case S3C2410_UART0_UTXH:

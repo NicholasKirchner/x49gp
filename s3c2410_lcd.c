@@ -84,10 +84,6 @@ s3c2410_lcd_data_init(s3c2410_lcd_t *lcd)
 void
 x49gp_schedule_lcd_update(x49gp_t *x49gp)
 {
-	unsigned long ticks;
-
-	ticks = (x49gp->emulator_fclk / x49gp->PCLK_ratio) / 100;
-
 	if (! x49gp_timer_pending(x49gp->lcd_timer)) {
 		x49gp_mod_timer(x49gp->lcd_timer,
 				x49gp_get_clock() + X49GP_LCD_REFRESH_INTERVAL);

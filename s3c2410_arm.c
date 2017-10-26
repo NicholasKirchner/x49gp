@@ -34,7 +34,7 @@ s3c2410_arm_load(x49gp_module_t *module, GKeyFile *key)
 	cpu_reset(env);
 	tlb_flush(env, 1);
 
-	for (i = 0; i < 16; i++) {
+	for (i = 0; i < (sizeof(env->regs) / sizeof(env->regs[0])); i++) {
 		sprintf(name, "reg-%02u", i);
 		if (x49gp_module_get_u32(module, key, name, 0, &env->regs[i]))
 			error = -EAGAIN;
@@ -43,7 +43,7 @@ s3c2410_arm_load(x49gp_module_t *module, GKeyFile *key)
 		error = -EAGAIN;
 	if (x49gp_module_get_u32(module, key, "spsr", 0, &env->spsr))
 		error = -EAGAIN;
-	for (i = 0; i < 6; i++) {
+	for (i = 0; i < (sizeof(env->banked_spsr) / sizeof(env->banked_spsr[0])); i++) {
 		sprintf(name, "banked-spsr-%02u", i);
 		if (x49gp_module_get_u32(module, key, name, 0, &env->banked_spsr[i]))
 			error = -EAGAIN;
@@ -54,7 +54,7 @@ s3c2410_arm_load(x49gp_module_t *module, GKeyFile *key)
 		if (x49gp_module_get_u32(module, key, name, 0, &env->banked_r14[i]))
 			error = -EAGAIN;
 	}
-	for (i = 8; i < 12; i++) {
+	for (i = 0; i < (sizeof(env->usr_regs) / sizeof(env->usr_regs[0])); i++) {
 		sprintf(name, "reg-usr-%02u", i);
 		if (x49gp_module_get_u32(module, key, name,
 				         0, &env->usr_regs[i]))
@@ -80,7 +80,7 @@ s3c2410_arm_load(x49gp_module_t *module, GKeyFile *key)
 #endif
 	if (x49gp_module_get_u32(module, key, "QF", 0, &env->QF))
 		error = -EAGAIN;
-	if (x49gp_module_get_int(module, key, "thumb", 0, &env->thumb))
+	if (x49gp_module_get_u32(module, key, "thumb", 0, &env->thumb))
 		error = -EAGAIN;
 
 	if (x49gp_module_get_u32(module, key, "cp15-c0-cpuid", 0, &env->cp15.c0_cpuid))
@@ -132,9 +132,9 @@ s3c2410_arm_load(x49gp_module_t *module, GKeyFile *key)
 
 	if (x49gp_module_get_int(module, key, "exception-index", 0, &env->exception_index))
 		error = -EAGAIN;
-	if (x49gp_module_get_int(module, key, "interrupt-request", 0, &env->interrupt_request))
+	if (x49gp_module_get_u32(module, key, "interrupt-request", 0, &env->interrupt_request))
 		error = -EAGAIN;
-	if (x49gp_module_get_int(module, key, "halted", 0, &env->halted))
+	if (x49gp_module_get_u32(module, key, "halted", 0, &env->halted))
 		error = -EAGAIN;
 
 	env->exception_index = -1;
@@ -162,13 +162,13 @@ s3c2410_arm_save(x49gp_module_t *module, GKeyFile *key)
 	printf("%s: %s:%u\n", module->name, __FUNCTION__, __LINE__);
 #endif
 
-	for (i = 0; i < 16; i++) {
+	for (i = 0; i < (sizeof(env->regs) / sizeof(env->regs[0])); i++) {
 		sprintf(name, "reg-%02u", i);
 		x49gp_module_set_u32(module, key, name, env->regs[i]);
 	}
 	x49gp_module_set_u32(module, key, "cpsr", env->uncached_cpsr);
 	x49gp_module_set_u32(module, key, "spsr", env->spsr);
-	for (i = 0; i < 6; i++) {
+	for (i = 0; i < (sizeof(env->banked_spsr) / sizeof(env->banked_spsr[0])); i++) {
 		sprintf(name, "banked-spsr-%02u", i);
 		x49gp_module_set_u32(module, key, name, env->banked_spsr[i]);
 		sprintf(name, "banked-r13-%02u", i);
@@ -176,7 +176,7 @@ s3c2410_arm_save(x49gp_module_t *module, GKeyFile *key)
 		sprintf(name, "banked-r14-%02u", i);
 		x49gp_module_set_u32(module, key, name, env->banked_r14[i]);
 	}
-	for (i = 8; i < 12; i++) {
+	for (i = 0; i < (sizeof(env->usr_regs) / sizeof(env->usr_regs[0])); i++) {
 		sprintf(name, "reg-usr-%02u", i);
 		x49gp_module_set_u32(module, key, name, env->usr_regs[i]);
 		sprintf(name, "reg-fiq-%02u", i);

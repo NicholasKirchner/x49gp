@@ -777,9 +777,9 @@ if test -z "$zero_malloc" ; then
     fi
 fi
 
-#if test "$werror" = "yes" ; then
-#    QEMU_CFLAGS="-Werror $QEMU_CFLAGS"
-#fi
+if test "$werror" = "yes" ; then
+    QEMU_CFLAGS="-Werror $QEMU_CFLAGS"
+fi
 
 if test "$solaris" = "no" ; then
     if $ld --version 2>/dev/null | grep "GNU ld" >/dev/null 2>/dev/null ; then

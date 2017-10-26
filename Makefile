@@ -102,7 +102,7 @@ CC += $(shell if [ "`uname -m`" = "sparc64" -o "`uname -m`" = "sun4u" ]; then ec
 
 COCOA_LIBS=$(shell if [ "`uname -s`" = "Darwin" ]; then echo "-F/System/Library/Frameworks -framework Cocoa -framework IOKit"; fi)
 
-CFLAGS = -O2 -Wall $(DEBUG) $(INCLUDES) $(DEFINES)
+CFLAGS = -O2 -Wall -Werror $(DEBUG) $(INCLUDES) $(DEFINES)
 LDFLAGS = $(DEBUG) $(X49GP_LDFLAGS) $(GDB_LDFLAGS)
 LDLIBS = $(X49GP_LIBS) $(GDB_LIBS) $(COCOA_LIBS)
 
@@ -266,6 +266,9 @@ endif
 
 %.o: %.c
 	$(CC) $(CFLAGS) -o $@ -c $<
+
+block-vvfat.o: block-vvfat.c
+	$(CC) $(CFLAGS) -fno-aggressive-loop-optimizations -o $@ -c $<
 
 ifdef QEMU_OLD
 clean-libs:

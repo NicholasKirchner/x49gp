@@ -32,9 +32,6 @@ struct x49gp_timer_s {
 	x49gp_timer_t		*next;
 };
 
-#ifdef QEMU_OLD // LD TEMPO HACK
-typedef x49gp_timer_t		QEMUTimer;
-#endif
 typedef x49gp_timer_cb_t	QEMUTimerCB;
 typedef void *			QEMUClock;
 QEMUClock			*rt_clock = (void *) X49GP_TIMER_REALTIME;
@@ -150,34 +147,36 @@ x49gp_timer_expired(x49gp_timer_t *timer_head, int64_t current_time)
 	return (timer_head->expires <= current_time);
 }
 
+#ifndef QEMU_OLD // LD TEMPO HACK
+
 QEMUTimer *
 qemu_new_timer(QEMUClock *clock, QEMUTimerCB cb, void *opaque)
 {
-	return x49gp_new_timer((long) clock, cb, opaque);
+	return (void *) x49gp_new_timer((long) clock, cb, opaque);
 }
 
 void
 qemu_free_timer(QEMUTimer *ts)
 {
-	return x49gp_free_timer(ts);
+	return x49gp_free_timer((void *) ts);
 }
 
 void
 qemu_mod_timer(QEMUTimer *ts, int64_t expire_time)
 {
-	return x49gp_mod_timer(ts, expire_time);
+	return x49gp_mod_timer((void *) ts, expire_time);
 }
 
 void
 qemu_del_timer(QEMUTimer *ts)
 {
-	return x49gp_del_timer(ts);
+	return x49gp_del_timer((void *) ts);
 }
 
 int
 qemu_timer_pending(QEMUTimer *ts)
 {
-	return x49gp_timer_pending(ts);
+	return x49gp_timer_pending((void *) ts);
 }
 
 int64_t
@@ -185,6 +184,8 @@ qemu_get_clock(QEMUClock *clock)
 {
 	return x49gp_get_clock();
 }
+
+#endif /* QEMU_OLD */
 
 static void
 x49gp_run_timers(x49gp_timer_t **ptimer_head, int64_t current_time)

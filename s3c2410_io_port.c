@@ -195,8 +195,8 @@ s3c2410_io_port_read(void *opaque, target_phys_addr_t offset)
 	offset -= S3C2410_IO_PORT_BASE;
 #endif
 	if (! S3C2410_OFFSET_OK(io, offset)) {
-fprintf(stderr, "%s:%u: offset %08x not OK\n", __FUNCTION__, __LINE__, offset);
-abort();
+		fprintf(stderr, "%s:%u: offset %08lx not OK\n", __FUNCTION__, __LINE__, (unsigned long) offset);
+		abort();
 		return ~(0);
 	}
 
@@ -360,7 +360,10 @@ s3c2410_io_port_g_set_bit(x49gp_t *x49gp, int n, uint32_t set)
 {
 	s3c2410_io_port_t *io = x49gp->s3c2410_io_port;
 	uint32_t value, change;
-	int pending, level;
+	int pending;
+#ifdef DEBUG_S3C2410_IO_PORT
+	int level = 0;
+#endif
 
 	if (n > 7)
 		return;
@@ -412,17 +415,21 @@ s3c2410_io_port_g_set_bit(x49gp_t *x49gp, int n, uint32_t set)
 #endif
 
 	pending = -1;
-	level = 0;
+
 	switch ((io->extint1 >> (4 * n)) & 7) {
 	case 0:	/* Low Level */
 		if (!(io->gpgdat & (1 << n)))
 			pending = n;
+#ifdef DEBUG_S3C2410_IO_PORT
 		level = 1;
+#endif
 		break;
 	case 1:	/* High Level */
 		if (io->gpgdat & (1 << n))
 			pending = n;
+#ifdef DEBUG_S3C2410_IO_PORT
 		level = 1;
+#endif
 		break;
 	case 2:	/* Falling Edge */
 	case 3:
