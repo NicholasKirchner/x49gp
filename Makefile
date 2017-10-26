@@ -76,7 +76,7 @@ QEMU_DEFINES+=-DQEMU_OLD
 X49GP_LDFLAGS = -L$(QEMU)/arm-softmmu
 X49GP_LIBS = -lqemu -lz
 else
-QEMU_DIR=qemu/qemu-git
+QEMU_DIR=$(QEMU)
 QEMU_DIR_BUILD=$(QEMU_DIR)/arm-softmmu
 QEMU_DEFINES+=-DNEED_CPU_H
 X49GP_LDFLAGS=
@@ -171,7 +171,7 @@ ifdef QEMU_OLD
 $(TARGET): $(OBJS) $(VVFATOBJS) $(QEMU)/arm-softmmu/libqemu.a
 	$(CC) -Wl,--no-as-needed $(LDFLAGS) -o $@ $(OBJS) $(VVFATOBJS) $(LDLIBS)
 else
-$(TARGET): $(OBJS) $(VVFATOBJS) $(X49GP_LIBS)
+$(TARGET): $(OBJS) $(VVFATOBJS) _dir_qemu
 	$(CC) -Wl,--no-as-needed $(LDFLAGS) -o $@ $(OBJS) $(VVFATOBJS) $(LDLIBS)
 endif
 
@@ -246,22 +246,22 @@ sim: dummy
 
 ifdef QEMU_OLD
 $(QEMU): $(QEMU)/config-host.h dummy
-	$(QEMUMAKE) -C $@
+	+$(QEMUMAKE) -C $@
 
 $(QEMU)/config-host.h: $(QEMUSRC)
 	cd qemu; ./prepare.sh
-	make -C . all
+	$(MAKE) -C . all
 
 $(QEMU)/arm-softmmu/%.o: $(QEMU)/%.c
-	$(QEMUMAKE) BASE_CFLAGS=-DX49GP -C $(QEMU)/arm-softmmu $(shell basename $@)
+	+$(QEMUMAKE) BASE_CFLAGS=-DX49GP -C $(QEMU)/arm-softmmu $(shell basename $@)
 else
 $(QEMU)/config-host.h: $(QEMUSRC)
 	( cd $(QEMU); \
 	./configure-small --extra-cflags=-DX49GP; \
-	$(QEMUMAKE) -f Makefile-small )
+	+$(QEMUMAKE) -f Makefile-small )
 
-$(QEMU)/arm-softmmu/%.o: $(QEMU)/%.c
-	$(QEMUMAKE) -C $(QEMU) -f Makefile-small
+_dir_qemu: dummy
+	+$(QEMUMAKE) -C $(QEMU) -f Makefile-small
 endif
 
 %.o: %.c
