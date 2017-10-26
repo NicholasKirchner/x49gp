@@ -1629,10 +1629,8 @@ x49gp_ui_key_event(GtkWidget *widget, GdkEventKey *event, gpointer user_data)
 	case GDK_Y: case GDK_y:			index = 29;	break;
 	case GDK_Z: case GDK_z:
 	case GDK_slash: case GDK_KP_Divide:	index = 30;	break;
-#ifdef __APPLE__
-	case GDK_Tab:					index = 31;	break;
-#else
-	case GDK_Tab:					index = 31;	break;
+	case GDK_Tab:				index = 31;	break;
+#ifndef __APPLE__
 	case GDK_Alt_L: case GDK_Alt_R:
 	case GDK_Meta_L: case GDK_Meta_R:
 	case GDK_Mode_switch:			index = 31;	break;
@@ -1659,6 +1657,11 @@ x49gp_ui_key_event(GtkWidget *widget, GdkEventKey *event, gpointer user_data)
 	case GDK_KP_Decimal:			index = 48;	break;
 	case GDK_space: case GDK_KP_Space:	index = 49;	break;
 	case GDK_Return: case GDK_KP_Enter:	index = 50;	break;
+
+	case GDK_F12:
+		x49gp_modules_reset(x49gp, 0);
+		cpu_reset(x49gp->env);
+		return FALSE;
 	default:
 		return FALSE;
 	}
