@@ -262,11 +262,11 @@ x49gp_main_loop(x49gp_t *x49gp)
 
 		if (x49gp->arm_idle == X49GP_ARM_RUN) {
 #ifdef DEBUG_X49GP_TIMER_IDLE
-printf("%lld: %s: call cpu_exec(%p)\n", x49gp_get_clock(),  __FUNCTION__, x49gp->env);
+			printf("%lld: %s: call cpu_exec(%p)\n", (unsigned long long) x49gp_get_clock(),  __FUNCTION__, x49gp->env);
 #endif
 			ret = cpu_exec(x49gp->env);
 #ifdef DEBUG_X49GP_TIMER_IDLE
-printf("%lld: %s: cpu_exec(): %d, PC %08x\n", x49gp_get_clock(), __FUNCTION__, ret, x49gp->env->regs[15]);
+			printf("%lld: %s: cpu_exec(): %d, PC %08x\n", (unsigned long long) x49gp_get_clock(), __FUNCTION__, ret, x49gp->env->regs[15]);
 #endif
 
 if (x49gp->env->regs[15] == 0x8620) {

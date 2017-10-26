@@ -120,7 +120,7 @@ s3c2410_rtc_timeout(void * user_data)
 		us = 1000;
 
 #ifdef DEBUG_S3C2410_RTC
-	printf("RTC: restart TICK timer (%llu us)\n", us);
+	printf("RTC: restart TICK timer (%llu us)\n", (unsigned long long) us);
 #endif
 
 	x49gp_mod_timer(rtc->tick_timer, rtc->expires);
@@ -156,7 +156,7 @@ s3c2410_rtc_set_ticnt(s3c2410_rtc_t *rtc)
 		us = 1000;
 
 #ifdef DEBUG_S3C2410_RTC
-	printf("RTC: start TICK timer (%lld us)\n", us);
+	printf("RTC: start TICK timer (%lld us)\n", (unsigned long long) us);
 #endif
 
 	x49gp_mod_timer(rtc->tick_timer, rtc->expires);
@@ -216,7 +216,7 @@ s3c2410_rtc_alarm(void * user_data)
 	}
 
 #ifdef DEBUG_S3C2410_RTC
-	printf("RTC: reload ALARM timer (%lld us)\n", us);
+	printf("RTC: reload ALARM timer (%lld us)\n", (unsigned long long) us);
 #endif
 
 	x49gp_mod_timer(rtc->alarm_timer, now + us);
@@ -239,7 +239,7 @@ s3c2410_rtc_set_rtcalm(s3c2410_rtc_t *rtc)
 	us = 1000000LL - tv.tv_usec;
 
 #ifdef DEBUG_S3C2410_RTC
-	printf("RTC: start ALARM timer (%lld us)\n", us);
+	printf("RTC: start ALARM timer (%lld us)\n", (unsigned long long) us);
 #endif
 
 	x49gp_mod_timer(rtc->alarm_timer, now + us);
@@ -294,9 +294,9 @@ s3c2410_rtc_read(void *opaque, target_phys_addr_t offset)
 	}
 
 #ifdef DEBUG_S3C2410_RTC
-	printf("read  %s [%08x] %s [%08x] data %08x\n",
+	printf("read  %s [%08x] %s [%08lx] data %08x\n",
 		"s3c2410-rtc", S3C2410_RTC_BASE,
-		reg->name, offset, *(reg->datap));
+		reg->name, (unsigned long) offset, *(reg->datap));
 #endif
 
 	return *(reg->datap);
@@ -318,9 +318,9 @@ s3c2410_rtc_write(void *opaque, target_phys_addr_t offset, uint32_t data)
 	reg = S3C2410_OFFSET_ENTRY(rtc, offset);
 
 #ifdef DEBUG_S3C2410_RTC
-	printf("write %s [%08x] %s [%08x] data %08x\n",
+	printf("write %s [%08x] %s [%08lx] data %08x\n",
 		"s3c2410-rtc", S3C2410_RTC_BASE,
-		reg->name, offset, data);
+		reg->name, (unsigned long) offset, data);
 #endif
 
 	switch (offset) {

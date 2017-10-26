@@ -66,9 +66,9 @@ s3c2410_adc_read(void *opaque, target_phys_addr_t offset)
 	reg = S3C2410_OFFSET_ENTRY(adc, offset);
 
 #ifdef DEBUG_S3C2410_ADC
-	printf("read  %s [%08x] %s [%08x] data %08x\n",
+	printf("read  %s [%08x] %s [%08lx] data %08x\n",
 		"s3c2410-adc", S3C2410_ADC_BASE,
-		reg->name, offset, *(reg->datap));
+		reg->name, (unsigned long) offset, *(reg->datap));
 #endif
 
 	switch (offset) {
@@ -99,9 +99,9 @@ s3c2410_adc_write(void *opaque, target_phys_addr_t offset, uint32_t data)
 	reg = S3C2410_OFFSET_ENTRY(adc, offset);
 
 #ifdef DEBUG_S3C2410_ADC
-	printf("write %s [%08x] %s [%08x] data %08x\n",
+	printf("write %s [%08x] %s [%08lx] data %08x\n",
 		"s3c2410-adc", S3C2410_ADC_BASE,
-		reg->name, offset, data);
+		reg->name, (unsigned long) offset, data);
 #endif
 
 	*(reg->datap) = data;

@@ -514,9 +514,9 @@ s3c2410_intc_read(void *opaque, target_phys_addr_t offset)
 	}
 
 #ifdef DEBUG_S3C2410_INTC
-	printf("read  %s [%08x] %s [%08x] data %08x\n",
+	printf("read  %s [%08x] %s [%08lx] data %08x\n",
 		"s3c2410-intc", S3C2410_INTC_BASE,
-		reg->name, offset, data);
+		reg->name, (unsigned long) offset, data);
 #endif
 
 	return data;
@@ -540,9 +540,9 @@ s3c2410_intc_write(void *opaque, target_phys_addr_t offset, uint32_t data)
 #ifdef DEBUG_S3C2410_INTC
 	reg = S3C2410_OFFSET_ENTRY(intc, offset);
 
-	printf("write %s [%08x] %s [%08x] data %08x\n",
+	printf("write %s [%08x] %s [%08lx] data %08x\n",
 		"s3c2410-intc", S3C2410_INTC_BASE,
-		reg->name, offset, data);
+		reg->name, (unsigned long) offset, data);
 #endif
 
 	switch (offset) {

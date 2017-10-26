@@ -211,9 +211,9 @@ s3c2410_lcd_read(void *opaque, target_phys_addr_t offset)
 	}
 
 #ifdef DEBUG_S3C2410_LCD
-	printf("read  %s [%08x] %s [%08x] data %08x\n",
+	printf("read  %s [%08x] %s [%08lx] data %08x\n",
 		"s3c2410-lcd", S3C2410_LCD_BASE,
-		reg->name, offset, *(reg->datap));
+		reg->name, (unsigned long) offset, *(reg->datap));
 #endif
 
 	return *(reg->datap);
@@ -236,9 +236,9 @@ s3c2410_lcd_write(void *opaque, target_phys_addr_t offset, uint32_t data)
 	reg = S3C2410_OFFSET_ENTRY(lcd, offset);
 
 #ifdef DEBUG_S3C2410_LCD
-	printf("write %s [%08x] %s [%08x] data %08x\n",
+	printf("write %s [%08x] %s [%08lx] data %08x\n",
 		"s3c2410-lcd", S3C2410_LCD_BASE,
-		reg->name, offset, data);
+		reg->name, (unsigned long) offset, data);
 #endif
 
 	switch (offset) {

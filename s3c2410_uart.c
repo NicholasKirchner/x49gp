@@ -164,8 +164,8 @@ s3c2410_uart_read(void *opaque, target_phys_addr_t offset)
 	reg = S3C2410_OFFSET_ENTRY(uart_regs, offset);
 
 #ifdef DEBUG_S3C2410_UART
-	printf("read  %s [%08x] %s [%08x] data %08x\n",
-		module, base, reg->name, offset, *(reg->datap));
+	printf("read  %s [%08x] %s [%08lx] data %08x\n",
+		module, mod_offset, reg->name, (unsigned long) offset, *(reg->datap));
 #endif
 
 	switch (offset) {
@@ -223,8 +223,8 @@ s3c2410_uart_write(void *opaque, target_phys_addr_t offset, uint32_t data)
 	reg = S3C2410_OFFSET_ENTRY(uart_regs, offset);
 
 #ifdef DEBUG_S3C2410_UART
-	printf("write %s [%08x] %s [%08x] data %08x\n",
-		module, mod_offset, reg->name, offset, data);
+	printf("write %s [%08x] %s [%08lx] data %08x\n",
+		module, mod_offset, reg->name, (unsigned long) offset, data);
 #endif
 
 	*(reg->datap) = data;
