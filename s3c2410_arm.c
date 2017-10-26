@@ -47,9 +47,13 @@ s3c2410_arm_load(x49gp_module_t *module, GKeyFile *key)
 		sprintf(name, "banked-spsr-%02u", i);
 		if (x49gp_module_get_u32(module, key, name, 0, &env->banked_spsr[i]))
 			error = -EAGAIN;
+	}
+	for (i = 0; i < (sizeof(env->banked_r13) / sizeof(env->banked_r13[0])); i++) {
 		sprintf(name, "banked-r13-%02u", i);
 		if (x49gp_module_get_u32(module, key, name, 0, &env->banked_r13[i]))
 			error = -EAGAIN;
+	}
+	for (i = 0; i < (sizeof(env->banked_r14) / sizeof(env->banked_r14[0])); i++) {
 		sprintf(name, "banked-r14-%02u", i);
 		if (x49gp_module_get_u32(module, key, name, 0, &env->banked_r14[i]))
 			error = -EAGAIN;
@@ -59,6 +63,8 @@ s3c2410_arm_load(x49gp_module_t *module, GKeyFile *key)
 		if (x49gp_module_get_u32(module, key, name,
 				         0, &env->usr_regs[i]))
 			error = -EAGAIN;
+	}
+	for (i = 0; i < (sizeof(env->fiq_regs) / sizeof(env->fiq_regs[0])); i++) {
 		sprintf(name, "reg-fiq-%02u", i);
 		if (x49gp_module_get_u32(module, key, name,
 				         0, &env->fiq_regs[i]))
@@ -171,14 +177,20 @@ s3c2410_arm_save(x49gp_module_t *module, GKeyFile *key)
 	for (i = 0; i < (sizeof(env->banked_spsr) / sizeof(env->banked_spsr[0])); i++) {
 		sprintf(name, "banked-spsr-%02u", i);
 		x49gp_module_set_u32(module, key, name, env->banked_spsr[i]);
+	}
+	for (i = 0; i < (sizeof(env->banked_r13) / sizeof(env->banked_r13[0])); i++) {
 		sprintf(name, "banked-r13-%02u", i);
 		x49gp_module_set_u32(module, key, name, env->banked_r13[i]);
+	}
+	for (i = 0; i < (sizeof(env->banked_r14) / sizeof(env->banked_r14[0])); i++) {
 		sprintf(name, "banked-r14-%02u", i);
 		x49gp_module_set_u32(module, key, name, env->banked_r14[i]);
 	}
 	for (i = 0; i < (sizeof(env->usr_regs) / sizeof(env->usr_regs[0])); i++) {
 		sprintf(name, "reg-usr-%02u", i);
 		x49gp_module_set_u32(module, key, name, env->usr_regs[i]);
+	}
+	for (i = 0; i < (sizeof(env->fiq_regs) / sizeof(env->fiq_regs[0])); i++) {
 		sprintf(name, "reg-fiq-%02u", i);
 		x49gp_module_set_u32(module, key, name, env->fiq_regs[i]);
 	}
