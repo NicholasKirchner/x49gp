@@ -322,19 +322,21 @@ flash_readb(void *opaque, target_phys_addr_t offset)
 	uint32_t shift;
 	unsigned char data;
 
+#ifdef QEMU_OLD
+	offset -= (target_phys_addr_t) phys_ram_base + flash->offset;
+#endif
+
 	if (flash->state == FLASH_STATE_NORMAL) {
-		offset -= (target_phys_addr_t) phys_ram_base;
 		data = *(datap + offset);
 	} else {
-		offset -= 0;
 		temp = flash_get_halfword(flash, offset & ~(1));
 		shift = (offset & 1) << 3;
 		data = (temp >> shift) & 0xff;
 	}
 
 #ifdef DEBUG_X49GP_FLASH_READ
-	printf("read  FLASH 1 (state %u) at offset %08x: %02x\n",
-		flash->state, offset, data);
+	printf("read  FLASH 1 (state %u) at offset %08lx: %02x\n",
+		flash->state, (unsigned long) offset, data);
 #endif
 
 	return data;
@@ -347,17 +349,19 @@ flash_readw(void *opaque, target_phys_addr_t offset)
 	uint8_t *datap = flash->data;
 	uint32_t data;
 
+#ifdef QEMU_OLD
+	offset -= (target_phys_addr_t) phys_ram_base + flash->offset;
+#endif
+
 	if (flash->state == FLASH_STATE_NORMAL) {
-		offset -= (target_phys_addr_t) phys_ram_base;
 		data = lduw_p(datap + offset);
 	} else {
-		offset -= 0;
 		data = flash_get_halfword(flash, offset);
 	}
 
 #ifdef DEBUG_X49GP_FLASH_READ
-	printf("read  FLASH 2 (state %u) at offset %08x: %04x\n",
-		flash->state, offset, data);
+	printf("read  FLASH 2 (state %u) at offset %08lx: %04x\n",
+		flash->state, (unsigned long) offset, data);
 #endif
 
 	return data;
@@ -370,18 +374,20 @@ flash_readl(void *opaque, target_phys_addr_t offset)
 	uint8_t *datap = flash->data;
 	uint32_t data;
 
+#ifdef QEMU_OLD
+	offset -= (target_phys_addr_t) phys_ram_base + flash->offset;
+#endif
+
 	if (flash->state == FLASH_STATE_NORMAL) {
-		offset -= (target_phys_addr_t) phys_ram_base;
 		data = ldl_p(datap + offset);
 	} else {
-		offset -= 0;
 		data = (flash_get_halfword(flash, offset + 2) << 16) |
 		       (flash_get_halfword(flash, offset + 0) <<  0);
 	}
 
 #ifdef DEBUG_X49GP_FLASH_READ
-	printf("read  FLASH 4 (state %u) at offset %08x: %08x\n",
-		flash->state, offset, data);
+	printf("read  FLASH 4 (state %u) at offset %08lx: %08x\n",
+		flash->state, (unsigned long) offset, data);
 #endif
 
 	return data;
@@ -393,15 +399,14 @@ flash_writeb(void *opaque, target_phys_addr_t offset, uint32_t data)
 	x49gp_flash_t *flash = opaque;
 	uint32_t shift;
 
-	if (flash->state == FLASH_STATE_NORMAL)
-		offset -= (target_phys_addr_t) phys_ram_base;
-	else
-		offset -= 0;
+#ifdef QEMU_OLD
+	offset -= (target_phys_addr_t) phys_ram_base + flash->offset;
+#endif
 
 	data &= 0xff;
 
 #ifdef DEBUG_X49GP_FLASH_WRITE
-	printf("write FLASH 1 (state %u) at offset %08x: %02x\n",
+	printf("write FLASH 1 (state %u) at offset %08lx: %02x\n",
 		flash->state, offset, data);
 #endif
 
@@ -419,15 +424,14 @@ flash_writew(void *opaque, target_phys_addr_t offset, uint32_t data)
 {
 	x49gp_flash_t *flash = opaque;
 
-	if (flash->state == FLASH_STATE_NORMAL)
-		offset -= (target_phys_addr_t) phys_ram_base;
-	else
-		offset -= 0;
+#ifdef QEMU_OLD
+	offset -= (target_phys_addr_t) phys_ram_base + flash->offset;
+#endif
 
 	data &= 0xffff;
 
 #ifdef DEBUG_X49GP_FLASH_WRITE
-	printf("write FLASH 2 (state %u) at offset %08x: %04x\n",
+	printf("write FLASH 2 (state %u) at offset %08lx: %04x\n",
 		flash->state, offset, data);
 #endif
 
@@ -439,13 +443,12 @@ flash_writel(void *opaque, target_phys_addr_t offset, uint32_t data)
 {
 	x49gp_flash_t *flash = opaque;
 
-	if (flash->state == FLASH_STATE_NORMAL)
-		offset -= (target_phys_addr_t) phys_ram_base;
-	else
-		offset -= 0;
+#ifdef QEMU_OLD
+	offset -= (target_phys_addr_t) phys_ram_base + flash->offset;
+#endif
 
 #ifdef DEBUG_X49GP_FLASH_WRITE
-	printf("write FLASH 4 (state %u) at offset %08x: %08x\n",
+	printf("write FLASH 4 (state %u) at offset %08lx: %08x\n",
 		flash->state, offset, data);
 #endif
 

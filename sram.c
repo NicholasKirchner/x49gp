@@ -387,7 +387,7 @@ sram_get_word(void *opaque, target_phys_addr_t offset)
 	uint32_t data;
 
 #ifdef QEMU_OLD
-	offset -= S3C2410_SRAM_BASE;
+	offset -= (target_phys_addr_t)phys_ram_base + sram->offset;
 #endif
 	data = ldl_p(sram->data + offset);
 
@@ -423,7 +423,7 @@ sram_get_halfword(void *opaque, target_phys_addr_t offset)
 	unsigned short data;
 
 #ifdef QEMU_OLD
-	offset -= S3C2410_SRAM_BASE;
+	offset -= (target_phys_addr_t)phys_ram_base + sram->offset;
 #endif
 	data = lduw_p(sram->data + offset);
 
@@ -453,7 +453,7 @@ sram_get_byte(void *opaque, target_phys_addr_t offset)
 	unsigned char data;
 
 #ifdef QEMU_OLD
-	offset -= S3C2410_SRAM_BASE;
+	offset -= (target_phys_addr_t)phys_ram_base + sram->offset;
 #endif
 	data = ldub_p(sram->data + offset);
 
@@ -482,7 +482,6 @@ sram_put_word(void *opaque, target_phys_addr_t offset, uint32_t data)
 	x49gp_sram_t *sram = opaque;
 
 #ifdef QEMU_OLD
-	// offset -= S3C2410_SRAM_BASE;
 	offset -= (target_phys_addr_t)phys_ram_base + sram->offset;
 #endif
 
@@ -533,7 +532,6 @@ sram_put_halfword(void *opaque, target_phys_addr_t offset, uint32_t data)
 	x49gp_sram_t *sram = opaque;
 
 #ifdef QEMU_OLD
-	// offset -= S3C2410_SRAM_BASE;
 	offset -= (target_phys_addr_t)phys_ram_base + sram->offset;
 #endif
 	data &= 0xffff;
@@ -563,7 +561,6 @@ sram_put_byte(void *opaque, target_phys_addr_t offset, uint32_t data)
 	x49gp_sram_t *sram = opaque;
 
 #ifdef QEMU_OLD
-	// offset -= S3C2410_SRAM_BASE;
 	offset -= (target_phys_addr_t)phys_ram_base + sram->offset;
 #endif
 	data &= 0xff;
