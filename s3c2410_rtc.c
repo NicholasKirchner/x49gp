@@ -225,7 +225,6 @@ s3c2410_rtc_alarm(void * user_data)
 static int
 s3c2410_rtc_set_rtcalm(s3c2410_rtc_t *rtc)
 {
-	struct tm *tm;
 	struct timeval tv;
 	int64_t now, us;
 
@@ -235,7 +234,6 @@ s3c2410_rtc_set_rtcalm(s3c2410_rtc_t *rtc)
 	}
 
 	gettimeofday(&tv, NULL);
-	tm = localtime(&tv.tv_sec);
 
 	now = x49gp_get_clock();
 	us = 1000000LL - tv.tv_usec;
@@ -265,10 +263,10 @@ s3c2410_rtc_read(void *opaque, target_phys_addr_t offset)
 
 	if (S3C2410_RTC_BCDSEC <= offset && offset <= S3C2410_RTC_BCDYEAR) {
 		struct tm *tm;
-		time_t t;
+		struct timeval tv;
 
-		t = time(0);
-		tm = localtime(&t);
+		gettimeofday(&tv, NULL);
+		tm = localtime(&tv.tv_sec);
 
 		switch (offset) {
 		case S3C2410_RTC_BCDSEC:
