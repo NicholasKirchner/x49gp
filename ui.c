@@ -1659,8 +1659,18 @@ x49gp_ui_key_event(GtkWidget *widget, GdkEventKey *event, gpointer user_data)
 	case GDK_Return: case GDK_KP_Enter:	index = 50;	break;
 
 	case GDK_F12:
-		x49gp_modules_reset(x49gp, 0);
-		cpu_reset(x49gp->env);
+		switch (event->type) {
+		case GDK_KEY_PRESS:
+			x49gp_modules_reset(x49gp, X49GP_RESET_POWER_ON);
+			cpu_reset(x49gp->env);
+			x49gp_set_idle(x49gp, 1);
+			break;
+		case GDK_KEY_RELEASE:
+			x49gp_set_idle(x49gp, 0);
+			break;
+		default:
+			break;
+		}
 		return FALSE;
 	default:
 		return FALSE;
