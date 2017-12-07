@@ -103,7 +103,7 @@ CC += $(shell if [ "`uname -m`" = "sparc64" -o "`uname -m`" = "sun4u" ]; then ec
 
 COCOA_LIBS=$(shell if [ "`uname -s`" = "Darwin" ]; then echo "-F/System/Library/Frameworks -framework Cocoa -framework IOKit"; fi)
 
-CFLAGS = -O2 -Wall -Werror $(DEBUG) $(INCLUDES) $(DEFINES)
+CFLAGS = -O2 -Wall -Werror $(DEBUG) $(INCLUDES) $(DEFINES) -Wno-error=deprecated-declarations
 LDFLAGS = $(DEBUG) $(X49GP_LDFLAGS) $(GDB_LDFLAGS)
 LDLIBS = $(X49GP_LIBS) $(GDB_LIBS) $(COCOA_LIBS)
 
@@ -257,9 +257,9 @@ $(QEMU)/arm-softmmu/%.o: $(QEMU)/%.c
 	+$(QEMUMAKE) BASE_CFLAGS=-DX49GP -C $(QEMU)/arm-softmmu $(shell basename $@)
 else
 $(QEMU)/config-host.h: $(QEMUSRC)
-	( cd $(QEMU); \
+	+( cd $(QEMU); \
 	./configure-small --extra-cflags=-DX49GP; \
-	+$(QEMUMAKE) -f Makefile-small )
+	$(QEMUMAKE) -f Makefile-small )
 
 $(QEMU_OBJS): _dir_qemu
 
