@@ -98,7 +98,7 @@ Linux:
 sudo cp BACKUP /Volumes/X49GP/
 ```
 
-NOTE:  If using HPGCC2 don't forget the the ARMToolbox.
+NOTE:  If using HPGCC2 don't forget the ARMToolbox.
 
 ------------------------------------------------------------------------
 
