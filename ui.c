@@ -775,7 +775,7 @@ x49gp_ui_button_pixmaps_init(x49gp_t *x49gp, x49gp_ui_button_t *button,
 			} else {
 				src = gdk_pixbuf_new_subpixbuf(ui->bg_pixbuf,
 					       ui->kb_x_offset + button->key->x,
-					       ui->kb_y_offset + button->key->y - 1,
+					       ui->kb_y_offset + button->key->y + 1,
 					       button->key->width,
 					       button->key->height);
 			}
@@ -1719,7 +1719,7 @@ x49gp_button_expose_event(GtkWidget *widget, GdkEventExpose *event,
 	y = widget->allocation.y;
 
 	if (GTK_WIDGET_STATE(widget) == GTK_STATE_ACTIVE)
-		y += 1;
+		y -= 1;
 
 	gdk_draw_drawable(widget->window, widget->style->black_gc,
 			  button->pixmap, 0, 0, x, y,
