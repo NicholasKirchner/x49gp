@@ -35,12 +35,12 @@ DEBUG = -g # -pg
 
 #2.09
 #FIRMWARE = 4950_92.bin
-#2.10-7
-#FIRMWARE = hp49g-u.bin
 #HPGCC3 (copy HPGCC3 ROM first)
 #FIRMWARE = 49_hpgcc.bin
 #2.15
-FIRMWARE = 4950_215.bin
+#FIRMWARE = 4950_215.bin
+#2.15full
+FIRMWARE = 2MB_215f.bin
 
 BOOT49GP = boot-49g+.bin
 BOOT50G = boot-50g.bin
@@ -218,7 +218,6 @@ flash-noboot: $(FIRMWARE)
 	done; \
 	echo ""
 	@/bin/echo -n "$@: Copy firmware \"$(FIRMWARE)\" to "; expr 16 \* 1024
-	@dd if=hp49g-u.bin of=$@ bs=16 seek=1024 conv=notrunc 2>/dev/null
 	@dd if=$(FIRMWARE) of=$@ bs=16 seek=1024 conv=notrunc 2>/dev/null
 	@/bin/echo -n "$@: Set copyright \"$(COPYRIGHT)\" at "; expr 16 \* 1024
 	@/bin/echo -n "$(COPYRIGHT)" >copyright
