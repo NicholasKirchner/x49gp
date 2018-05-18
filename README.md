@@ -1,3 +1,5 @@
+Note: As of May 18, 2018, the best fork of this to look at is https://github.com/chwdt/x49gp.  Please go there.
+
 Additional note: August 22, 2013
 
 Updated this so that it'll compile on Ubuntu 12.04.
