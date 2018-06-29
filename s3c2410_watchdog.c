@@ -127,7 +127,7 @@ s3c2410_watchdog_next_interrupt(x49gp_t *x49gp)
 
 #ifdef DEBUG_S3C2410_WATCHDOG
 	printf("WATCHDOG: wtcnt %u, interval %lu, expires %llu, next irq %lu\n",
-		watchdog->wtcnt, watchdog->interval, x49gp_timer_pending(watchdog->timer) ? x49gp_timer_expires(watchdog->timer) : 0, irq);
+		watchdog->wtcnt, watchdog->interval, (unsigned long long) (x49gp_timer_pending(watchdog->timer) ? x49gp_timer_expires(watchdog->timer) : 0), irq);
 #endif
 
 	return irq;
@@ -175,9 +175,9 @@ s3c2410_watchdog_read(void *opaque, target_phys_addr_t offset)
 
 
 #ifdef DEBUG_S3C2410_WATCHDOG
-	printf("read  %s [%08x] %s [%08x] data %08x\n",
+	printf("read  %s [%08x] %s [%08lx] data %08x\n",
 		"s3c2410-watchdog", S3C2410_WATCHDOG_BASE,
-		reg->name, offset, *(reg->datap));
+		reg->name, (unsigned long) offset, *(reg->datap));
 #endif
 
 	return *(reg->datap);
@@ -199,9 +199,9 @@ s3c2410_watchdog_write(void *opaque, target_phys_addr_t offset, uint32_t data)
 	reg = S3C2410_OFFSET_ENTRY(watchdog, offset);
 
 #ifdef DEBUG_S3C2410_WATCHDOG
-	printf("write %s [%08x] %s [%08x] data %08x\n",
+	printf("write %s [%08x] %s [%08lx] data %08x\n",
 		"s3c2410-watchdog", S3C2410_WATCHDOG_BASE,
-		reg->name, offset, data);
+		reg->name, (unsigned long) offset, data);
 #endif
 
 	*(reg->datap) = data;

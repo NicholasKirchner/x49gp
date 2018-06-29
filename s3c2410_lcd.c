@@ -84,13 +84,35 @@ s3c2410_lcd_data_init(s3c2410_lcd_t *lcd)
 void
 x49gp_schedule_lcd_update(x49gp_t *x49gp)
 {
-	unsigned long ticks;
-
-	ticks = (x49gp->emulator_fclk / x49gp->PCLK_ratio) / 100;
-
 	if (! x49gp_timer_pending(x49gp->lcd_timer)) {
 		x49gp_mod_timer(x49gp->lcd_timer,
 				x49gp_get_clock() + X49GP_LCD_REFRESH_INTERVAL);
+	}
+}
+
+static int
+x49gp_get_pixel_color(s3c2410_lcd_t *lcd, int x, int y)
+{
+	uint32_t bank, addr, data, offset, pixel_offset;
+	int bits_per_pixel = lcd->lcdcon5 > 2 ? 1 : 4 >> lcd->lcdcon5;
+
+	bank = (lcd->lcdsaddr1 << 1) & 0x7fc00000;
+	addr = bank | ((lcd->lcdsaddr1 << 1) & 0x003ffffe);
+
+	pixel_offset = (160 * y + x) * bits_per_pixel;
+	offset = (pixel_offset >> 3) & 0xfffffffc;
+
+	data = ldl_phys(addr + offset);
+	data >>= pixel_offset & 31;
+	data &= (1 << bits_per_pixel) - 1;
+
+	switch (bits_per_pixel) {
+		case 1:
+			return 15 * data;
+		case 2:
+			return 15 & (lcd->bluelut >> (2 * data));
+		default:
+			return data;
 	}
 }
 
@@ -100,8 +122,7 @@ x49gp_lcd_update(x49gp_t *x49gp)
 	x49gp_ui_t *ui = x49gp->ui;
 	s3c2410_lcd_t *lcd = x49gp->s3c2410_lcd;
 	GdkRectangle rect;
-	uint32_t bank, addr, offset, data;
-	int row, i, b, x, y;
+	int color, x, y;
 
 	if (!(lcd->lcdcon1 & 1)) {
 		gdk_draw_drawable(ui->lcd_pixmap, ui->window->style->bg_gc[0],
@@ -111,69 +132,44 @@ x49gp_lcd_update(x49gp_t *x49gp)
 		goto done;
 	}
 
-	bank = (lcd->lcdsaddr1 << 1) & 0x7fc00000;
-	addr = bank | ((lcd->lcdsaddr1 << 1) & 0x003ffffe);
-
 	gdk_draw_drawable(ui->lcd_pixmap, ui->window->style->bg_gc[0],
 			  ui->bg_pixmap,
 			  ui->lcd_x_offset, ui->lcd_y_offset,
 			  0, 0, ui->lcd_width, ui->lcd_height);
 
-	data = ldl_phys(addr + 16);
-	if (data & (1 << 3)) {
-		gdk_draw_rectangle(ui->lcd_pixmap, ui->ann_io_gc, TRUE,
-				   236, 0, 15, 12);
-	}
-	data = ldl_phys(addr + 36);
-	if (data & (1 << 3)) {
-		gdk_draw_rectangle(ui->lcd_pixmap, ui->ann_left_gc, TRUE,
-				   11, 0, 15, 12);
-	}
-	data = ldl_phys(addr + 56);
-	if (data & (1 << 3)) {
-		gdk_draw_rectangle(ui->lcd_pixmap, ui->ann_right_gc, TRUE,
-				   56, 0, 15, 12);
-	}
-	data = ldl_phys(addr + 76);
-	if (data & (1 << 3)) {
-		gdk_draw_rectangle(ui->lcd_pixmap, ui->ann_alpha_gc, TRUE,
-				   101, 0, 15, 12);
-	}
-	data = ldl_phys(addr + 96);
-	if (data & (1 << 3)) {
-		gdk_draw_rectangle(ui->lcd_pixmap, ui->ann_battery_gc, TRUE,
-				   146, 0, 15, 12);
-	}
-	data = ldl_phys(addr + 116);
-	if (data & (1 << 3)) {
-		gdk_draw_rectangle(ui->lcd_pixmap, ui->ann_busy_gc, TRUE,
-				   191, 0, 15, 12);
-	}
+	color = x49gp_get_pixel_color(lcd, 131, 0);
+	gdk_gc_set_rgb_fg_color(ui->ann_io_gc, &(ui->colors[UI_COLOR_GRAYSCALE_0 + color]));
+	gdk_draw_rectangle(ui->lcd_pixmap, ui->ann_io_gc, TRUE, 236, 0, 15, 12);
 
-	offset = 0;
-	for (row = 0; row < ui->lcd_height / 2; row++) {
-		y = 2 * row;
-		x = 0;
-		for (i = 0; i < 5; i++) {
-			data = ldl_phys(addr + offset);
-			offset += sizeof(uint32_t);
+	color = x49gp_get_pixel_color(lcd, 131, 1);
+	gdk_gc_set_rgb_fg_color(ui->ann_left_gc, &(ui->colors[UI_COLOR_GRAYSCALE_0 + color]));
+	gdk_draw_rectangle(ui->lcd_pixmap, ui->ann_left_gc, TRUE, 11, 0, 15, 12);
 
-			for (b = 0; b < 32; b++) {
-				if (data & (1 << b)) {
-					gdk_draw_rectangle(ui->lcd_pixmap,
-							   ui->window->style->fg_gc[0],
-							   TRUE, x, y + ui->lcd_top_margin, 2, 2);
-				}
-				x += 2;
+	color = x49gp_get_pixel_color(lcd, 131, 2);
+	gdk_gc_set_rgb_fg_color(ui->ann_right_gc, &(ui->colors[UI_COLOR_GRAYSCALE_0 + color]));
+	gdk_draw_rectangle(ui->lcd_pixmap, ui->ann_right_gc, TRUE, 56, 0, 15, 12);
 
-				if (x >= ui->lcd_width) {
-					break;
-				}
-			}
+	color = x49gp_get_pixel_color(lcd, 131, 3);
+	gdk_gc_set_rgb_fg_color(ui->ann_alpha_gc, &(ui->colors[UI_COLOR_GRAYSCALE_0 + color]));
+	gdk_draw_rectangle(ui->lcd_pixmap, ui->ann_alpha_gc, TRUE, 101, 0, 15, 12);
+
+	color = x49gp_get_pixel_color(lcd, 131, 4);
+	gdk_gc_set_rgb_fg_color(ui->ann_battery_gc, &(ui->colors[UI_COLOR_GRAYSCALE_0 + color]));
+	gdk_draw_rectangle(ui->lcd_pixmap, ui->ann_battery_gc, TRUE, 146, 0, 15, 12);
+
+	color = x49gp_get_pixel_color(lcd, 131, 5);
+	gdk_gc_set_rgb_fg_color(ui->ann_busy_gc, &(ui->colors[UI_COLOR_GRAYSCALE_0 + color]));
+	gdk_draw_rectangle(ui->lcd_pixmap, ui->ann_busy_gc, TRUE, 191, 0, 15, 12);
+
+	for (y = 0; y < (ui->lcd_height - ui->lcd_top_margin) / 2; y++) {
+		for (x = 0; x < ui->lcd_width / 2; x++) {
+			color = x49gp_get_pixel_color(lcd, x, y);
+			gdk_gc_set_rgb_fg_color(ui->window->style->fg_gc[0],
+								  &(ui->colors[UI_COLOR_GRAYSCALE_0 + color]));
+			gdk_draw_rectangle(ui->lcd_pixmap, ui->window->style->fg_gc[0], TRUE,
+							   2 * x, 2 * y + ui->lcd_top_margin, 2, 2);
 		}
 	}
-
-	addr = bank | ((lcd->lcdsaddr2 << 1) & 0x003ffffe);
 
 done:
 	rect.x = 0;
@@ -215,9 +211,9 @@ s3c2410_lcd_read(void *opaque, target_phys_addr_t offset)
 	}
 
 #ifdef DEBUG_S3C2410_LCD
-	printf("read  %s [%08x] %s [%08x] data %08x\n",
+	printf("read  %s [%08x] %s [%08lx] data %08x\n",
 		"s3c2410-lcd", S3C2410_LCD_BASE,
-		reg->name, offset, *(reg->datap));
+		reg->name, (unsigned long) offset, *(reg->datap));
 #endif
 
 	return *(reg->datap);
@@ -240,9 +236,9 @@ s3c2410_lcd_write(void *opaque, target_phys_addr_t offset, uint32_t data)
 	reg = S3C2410_OFFSET_ENTRY(lcd, offset);
 
 #ifdef DEBUG_S3C2410_LCD
-	printf("write %s [%08x] %s [%08x] data %08x\n",
+	printf("write %s [%08x] %s [%08lx] data %08x\n",
 		"s3c2410-lcd", S3C2410_LCD_BASE,
-		reg->name, offset, data);
+		reg->name, (unsigned long) offset, data);
 #endif
 
 	switch (offset) {

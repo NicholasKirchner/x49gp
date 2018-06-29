@@ -140,7 +140,7 @@ s3c2410_timer_timeout(void *data)
 
 	timeout = 1000000LL * t->tcnt * t->interval / x49gp->PCLK;
 #ifdef DEBUG_S3C2410_TIMER
-	printf("s3c2410-timer: reload TIMER%u: CNT %u (%lu PCLKs): %llu us\n", t->index, t->tcnt, t->interval, timeout);
+	printf("s3c2410-timer: reload TIMER%u: CNT %u (%lu PCLKs): %llu us\n", t->index, t->tcnt, t->interval, (unsigned long long) timeout);
 #endif
 	x49gp_mod_timer(t->timer, x49gp_get_clock() + timeout);
 }
@@ -219,7 +219,7 @@ s3c2410_update_tcfg(s3c2410_timer_t *timer)
 		if (x49gp_timer_pending(t->timer)) {
 			timeout = 1000000LL * t->tcnt * t->interval / x49gp->PCLK;
 #ifdef DEBUG_S3C2410_TIMER
-			printf("s3c2410-timer: mod TIMER%u: CNT %u (%lu PCLKs): %llu us\n", t->index, t->tcnt, t->interval, timeout);
+			printf("s3c2410-timer: mod TIMER%u: CNT %u (%lu PCLKs): %llu us\n", t->index, t->tcnt, t->interval, (unsigned long long) timeout);
 #endif
 			x49gp_mod_timer(t->timer, x49gp_get_clock() + timeout);
 		}
@@ -254,7 +254,7 @@ s3c2410_update_tcon(s3c2410_timer_t *timer)
 			if (timer->tcon & t->tconfig->start_bit) {
 				timeout = 1000000LL * t->tcnt * t->interval / x49gp->PCLK;
 #ifdef DEBUG_S3C2410_TIMER
-				printf("s3c2410-timer: start TIMER%u: CNT %u (%lu PCLKs): %llu us\n", t->index, t->tcnt, t->interval, timeout);
+				printf("s3c2410-timer: start TIMER%u: CNT %u (%lu PCLKs): %llu us\n", t->index, t->tcnt, t->interval, (unsigned long long) timeout);
 #endif
 				x49gp_mod_timer(t->timer, x49gp_get_clock() + timeout);
 			} else {
@@ -329,9 +329,9 @@ s3c2410_timer_read(void *opaque, target_phys_addr_t offset)
 	}
 
 #ifdef DEBUG_S3C2410_TIMER
-	printf("read  %s [%08x] %s [%08x] data %08x\n",
+	printf("read  %s [%08x] %s [%08lx] data %08x\n",
 		"s3c2410-timer", S3C2410_TIMER_BASE,
-		reg->name, offset, data);
+		reg->name, (unsigned long) offset, data);
 #endif
 
 	return data;
@@ -353,9 +353,9 @@ s3c2410_timer_write(void *opaque, target_phys_addr_t offset, uint32_t data)
 	reg = S3C2410_OFFSET_ENTRY(timer, offset);
 
 #ifdef DEBUG_S3C2410_TIMER
-	printf("write %s [%08x] %s [%08x] data %08x\n",
+	printf("write %s [%08x] %s [%08lx] data %08x\n",
 		"s3c2410-timer", S3C2410_TIMER_BASE,
-		reg->name, offset, data);
+		reg->name, (unsigned long) offset, data);
 #endif
 
 	switch (offset) {

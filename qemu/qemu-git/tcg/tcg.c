@@ -549,14 +549,12 @@ void tcg_register_helper(void *func, const char *name)
 void tcg_gen_callN(TCGContext *s, TCGv_ptr func, unsigned int flags,
                    int sizemask, TCGArg ret, int nargs, TCGArg *args)
 {
-    int call_type;
     int i;
     int real_args;
     int nb_rets;
     TCGArg *nparam;
     *gen_opc_ptr++ = INDEX_op_call;
     nparam = gen_opparam_ptr++;
-    call_type = (flags & TCG_CALL_TYPE_MASK);
     if (ret != TCG_CALL_DUMMY_ARG) {
 #if TCG_TARGET_REG_BITS < 64
         if (sizemask & 1) {
@@ -582,6 +580,7 @@ void tcg_gen_callN(TCGContext *s, TCGv_ptr func, unsigned int flags,
 #if TCG_TARGET_REG_BITS < 64
         if (sizemask & (2 << i)) {
 #ifdef TCG_TARGET_I386
+	    int call_type = (flags & TCG_CALL_TYPE_MASK);
             /* REGPARM case: if the third parameter is 64 bit, it is
                allocated on the stack */
             if (i == 2 && call_type == TCG_CALL_TYPE_REGPARM) {

@@ -1077,7 +1077,7 @@ x49gp_ui_text_size(cairo_t *cr, const char *family, double size,
 		   double *ascent, double *descent,
 		   int n, ...)
 {
-	va_list ap;
+	va_list ap0, ap1;
 	cairo_font_extents_t font_extents;
 	cairo_font_weight_t weight;
 	cairo_font_slant_t slant;
@@ -1088,9 +1088,12 @@ x49gp_ui_text_size(cairo_t *cr, const char *family, double size,
 	if (n < 1)
 		return;
 
-	va_start(ap, n);
+	va_start(ap0, n);
+	va_copy(ap1, ap0);
 
-	x49gp_ui_vtext_path(cr, family, size, 0.0, 0.0, n, ap);
+	x49gp_ui_vtext_path(cr, family, size, 0.0, 0.0, n, ap0);
+
+	va_end(ap0);
 
 	cairo_fill_extents(cr, &x1, &y1, &x2, &y2);
 
@@ -1101,9 +1104,10 @@ x49gp_ui_text_size(cairo_t *cr, const char *family, double size,
 	d = 0.0;
 
 	for (i = 0; i < n; i++) {
-		slant = va_arg(ap, cairo_font_slant_t);
-		weight = va_arg(ap, cairo_font_weight_t);
-		text = va_arg(ap, const char *);
+		slant = va_arg(ap1, cairo_font_slant_t);
+		weight = va_arg(ap1, cairo_font_weight_t);
+		text = va_arg(ap1, const char *);
+		(void) text;
 
 		cairo_select_font_face(cr, family, slant, weight);
 		cairo_set_font_size(cr, size);
@@ -1127,7 +1131,7 @@ x49gp_ui_text_size(cairo_t *cr, const char *family, double size,
 	*ascent = a;
 	*descent = d;
 
-	va_end(ap);
+	va_end(ap1);
 }
 
 static void
@@ -1467,7 +1471,7 @@ x49gp_ui_button_press(GtkWidget *widget, GdkEventButton *event,
 	x49gp_t *x49gp = button->x49gp;
 
 #ifdef DEBUG_X49GP_UI
-fprintf(stderr, "%s:%u: type %u, button %u\n", __FUNCTION__, __LINE__, event->type, event->button);
+	fprintf(stderr, "%s:%u: type %u, button %u\n", __FUNCTION__, __LINE__, event->type, event->button);
 #endif
 
 	if (event->type != GDK_BUTTON_PRESS)
@@ -1587,7 +1591,7 @@ x49gp_ui_key_event(GtkWidget *widget, GdkEventKey *event, gpointer user_data)
 	int index;
 
 #ifdef DEBUG_X49GP_UI
-fprintf(stderr, "%s:%u: type %u, keyval %04x\n", __FUNCTION__, __LINE__, event->type, event->keyval);
+	fprintf(stderr, "%s:%u: type %u, keyval %04x\n", __FUNCTION__, __LINE__, event->type, event->keyval);
 #endif
 
 	switch (event->keyval) {
@@ -1625,10 +1629,8 @@ fprintf(stderr, "%s:%u: type %u, keyval %04x\n", __FUNCTION__, __LINE__, event->
 	case GDK_Y: case GDK_y:			index = 29;	break;
 	case GDK_Z: case GDK_z:
 	case GDK_slash: case GDK_KP_Divide:	index = 30;	break;
-#ifdef __APPLE__
-	case GDK_Tab:					index = 31;	break;
-#else
-	case GDK_Tab:					index = 31;	break;
+	case GDK_Tab:				index = 31;	break;
+#ifndef __APPLE__
 	case GDK_Alt_L: case GDK_Alt_R:
 	case GDK_Meta_L: case GDK_Meta_R:
 	case GDK_Mode_switch:			index = 31;	break;
@@ -1655,6 +1657,21 @@ fprintf(stderr, "%s:%u: type %u, keyval %04x\n", __FUNCTION__, __LINE__, event->
 	case GDK_KP_Decimal:			index = 48;	break;
 	case GDK_space: case GDK_KP_Space:	index = 49;	break;
 	case GDK_Return: case GDK_KP_Enter:	index = 50;	break;
+
+	case GDK_F12:
+		switch (event->type) {
+		case GDK_KEY_PRESS:
+			x49gp_modules_reset(x49gp, X49GP_RESET_POWER_ON);
+			cpu_reset(x49gp->env);
+			x49gp_set_idle(x49gp, 1);
+			break;
+		case GDK_KEY_RELEASE:
+			x49gp_set_idle(x49gp, 0);
+			break;
+		default:
+			break;
+		}
+		return FALSE;
 	default:
 		return FALSE;
 	}
@@ -2108,7 +2125,7 @@ x49gp_window_button_press(GtkWidget *widget, GdkEventButton *event,
 			  gpointer user_data)
 {
 #ifdef DEBUG_X49GP_UI
-fprintf(stderr, "%s:%u: type %u, button %u\n", __FUNCTION__, __LINE__, event->type, event->button);
+	fprintf(stderr, "%s:%u: type %u, button %u\n", __FUNCTION__, __LINE__, event->type, event->button);
 #endif
 
 	gdk_window_focus(widget->window, event->time);
@@ -2284,6 +2301,23 @@ gui_load(x49gp_module_t *module, GKeyFile *keyfile)
 	x49gp_ui_color_init(&ui->colors[UI_COLOR_SILVER], 0xe0, 0xe0, 0xe0);
 	x49gp_ui_color_init(&ui->colors[UI_COLOR_ORANGE], 0xc0, 0x6e, 0x60);
 	x49gp_ui_color_init(&ui->colors[UI_COLOR_BLUE], 0x40, 0x60, 0xa4);
+
+	x49gp_ui_color_init(&ui->colors[UI_COLOR_GRAYSCALE_0], 0xab, 0xd2, 0xb4);
+	x49gp_ui_color_init(&ui->colors[UI_COLOR_GRAYSCALE_1], 0xa0, 0xc4, 0xa8);
+	x49gp_ui_color_init(&ui->colors[UI_COLOR_GRAYSCALE_2], 0x94, 0xb6, 0x9c);
+	x49gp_ui_color_init(&ui->colors[UI_COLOR_GRAYSCALE_3], 0x89, 0xa8, 0x90);
+	x49gp_ui_color_init(&ui->colors[UI_COLOR_GRAYSCALE_4], 0x7d, 0x9a, 0x84);
+	x49gp_ui_color_init(&ui->colors[UI_COLOR_GRAYSCALE_5], 0x72, 0x8c, 0x78);
+	x49gp_ui_color_init(&ui->colors[UI_COLOR_GRAYSCALE_6], 0x67, 0x7e, 0x6c);
+	x49gp_ui_color_init(&ui->colors[UI_COLOR_GRAYSCALE_7], 0x5b, 0x70, 0x60);
+	x49gp_ui_color_init(&ui->colors[UI_COLOR_GRAYSCALE_8], 0x50, 0x62, 0x54);
+	x49gp_ui_color_init(&ui->colors[UI_COLOR_GRAYSCALE_9], 0x44, 0x54, 0x48);
+	x49gp_ui_color_init(&ui->colors[UI_COLOR_GRAYSCALE_10], 0x39, 0x46, 0x3c);
+	x49gp_ui_color_init(&ui->colors[UI_COLOR_GRAYSCALE_11], 0x2e, 0x38, 0x30);
+	x49gp_ui_color_init(&ui->colors[UI_COLOR_GRAYSCALE_12], 0x22, 0x2a, 0x24);
+	x49gp_ui_color_init(&ui->colors[UI_COLOR_GRAYSCALE_13], 0x17, 0x1c, 0x18);
+	x49gp_ui_color_init(&ui->colors[UI_COLOR_GRAYSCALE_14], 0x0b, 0x03, 0x0c);
+	x49gp_ui_color_init(&ui->colors[UI_COLOR_GRAYSCALE_15], 0x00, 0x00, 0x00);
 
 
 	ui->lcd_canvas = gtk_drawing_area_new();

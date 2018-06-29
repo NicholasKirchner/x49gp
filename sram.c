@@ -31,6 +31,22 @@ typedef struct {
 
 #define SATURN(r)	((target_phys_addr_t) &((saturn_cpu_t *)0)->r)
 
+#if defined(DEBUG_X49GP_SYSRAM_READ) || defined(DEBUG_X49GP_SYSRAM_WRITE) || \
+	defined(DEBUG_X49GP_IRAM_READ) || defined(DEBUG_X49GP_IRAM_WRITE) || \
+	defined(DEBUG_X49GP_ERAM_READ) || defined(DEBUG_X49GP_ERAM_WRITE)
+#define DEBUG_X49GP_SRAM 1
+#endif
+
+typedef struct {
+	uint32_t	x;
+	uint32_t	ml;
+	uint32_t	mh;
+	uint8_t		m;
+	uint8_t		s;
+} hp_real_t;
+
+#ifdef DEBUG_X49GP_SRAM
+
 static uint32_t
 saturn_map_s2a(saturn_cpu_t *saturn, uint32_t saddr)
 {
@@ -85,14 +101,6 @@ hxs2real(int hxs)
 	}
 	return n;
 }
-
-typedef struct {
-	uint32_t	x;
-	uint32_t	ml;
-	uint32_t	mh;
-	uint8_t		m;
-	uint8_t		s;
-} hp_real_t;
 
 static char *
 real_number(saturn_cpu_t *saturn, uint32_t saddr, char *buffer, int ml, int xl)
@@ -379,7 +387,7 @@ sram_get_word(void *opaque, target_phys_addr_t offset)
 	uint32_t data;
 
 #ifdef QEMU_OLD
-	offset -= S3C2410_SRAM_BASE;
+	offset -= (target_phys_addr_t)phys_ram_base + sram->offset;
 #endif
 	data = ldl_p(sram->data + offset);
 
@@ -415,7 +423,7 @@ sram_get_halfword(void *opaque, target_phys_addr_t offset)
 	unsigned short data;
 
 #ifdef QEMU_OLD
-	offset -= S3C2410_SRAM_BASE;
+	offset -= (target_phys_addr_t)phys_ram_base + sram->offset;
 #endif
 	data = lduw_p(sram->data + offset);
 
@@ -445,7 +453,7 @@ sram_get_byte(void *opaque, target_phys_addr_t offset)
 	unsigned char data;
 
 #ifdef QEMU_OLD
-	offset -= S3C2410_SRAM_BASE;
+	offset -= (target_phys_addr_t)phys_ram_base + sram->offset;
 #endif
 	data = ldub_p(sram->data + offset);
 
@@ -474,7 +482,6 @@ sram_put_word(void *opaque, target_phys_addr_t offset, uint32_t data)
 	x49gp_sram_t *sram = opaque;
 
 #ifdef QEMU_OLD
-	// offset -= S3C2410_SRAM_BASE;
 	offset -= (target_phys_addr_t)phys_ram_base + sram->offset;
 #endif
 
@@ -525,7 +532,6 @@ sram_put_halfword(void *opaque, target_phys_addr_t offset, uint32_t data)
 	x49gp_sram_t *sram = opaque;
 
 #ifdef QEMU_OLD
-	// offset -= S3C2410_SRAM_BASE;
 	offset -= (target_phys_addr_t)phys_ram_base + sram->offset;
 #endif
 	data &= 0xffff;
@@ -555,7 +561,6 @@ sram_put_byte(void *opaque, target_phys_addr_t offset, uint32_t data)
 	x49gp_sram_t *sram = opaque;
 
 #ifdef QEMU_OLD
-	// offset -= S3C2410_SRAM_BASE;
 	offset -= (target_phys_addr_t)phys_ram_base + sram->offset;
 #endif
 	data &= 0xff;
@@ -592,6 +597,8 @@ static CPUWriteMemoryFunc *sram_writefn[] =
 	sram_put_halfword,
 	sram_put_word
 };
+
+#endif /* DEBUG_X49GP_SRAM */
 
 static int
 sram_load(x49gp_module_t *module, GKeyFile *key)
@@ -723,7 +730,7 @@ sram_init(x49gp_module_t *module)
 	phys_ram_size += S3C2410_SRAM_SIZE;
 	phys_ram_size += S3C2410_SRAM_SIZE;
 
-#if 0
+#ifdef DEBUG_X49GP_SRAM
 {
 	int iotype;
 

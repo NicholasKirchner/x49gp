@@ -34,13 +34,13 @@ X49GP_DEBUG = \
 DEBUG = -g # -pg
 
 #2.09
-FIRMWARE = 4950_92.bin
-#2.10-7
-#FIRMWARE = hp49g-u.bin
+#FIRMWARE = 4950_92.bin
 #HPGCC3 (copy HPGCC3 ROM first)
 #FIRMWARE = 49_hpgcc.bin
 #2.15
 #FIRMWARE = 4950_215.bin
+#2.15full
+FIRMWARE = 2MB_215f.bin
 
 BOOT49GP = boot-49g+.bin
 BOOT50G = boot-50g.bin
@@ -76,11 +76,12 @@ QEMU_DEFINES+=-DQEMU_OLD
 X49GP_LDFLAGS = -L$(QEMU)/arm-softmmu
 X49GP_LIBS = -lqemu -lz
 else
-QEMU_DIR=qemu/qemu-git
+QEMU_DIR=$(QEMU)
 QEMU_DIR_BUILD=$(QEMU_DIR)/arm-softmmu
 QEMU_DEFINES+=-DNEED_CPU_H
-X49GP_LDFLAGS=
-X49GP_LIBS= $(QEMU_DIR_BUILD)/exec.o $(QEMU_DIR_BUILD)/translate-all.o $(QEMU_DIR_BUILD)/cpu-exec.o $(QEMU_DIR_BUILD)/translate.o $(QEMU_DIR_BUILD)/fpu/softfloat.o $(QEMU_DIR_BUILD)/op_helper.o $(QEMU_DIR_BUILD)/helper.o $(QEMU_DIR_BUILD)/disas.o $(QEMU_DIR_BUILD)/i386-dis.o $(QEMU_DIR_BUILD)/arm-dis.o $(QEMU_DIR_BUILD)/tcg/tcg.o $(QEMU_DIR_BUILD)/iwmmxt_helper.o $(QEMU_DIR_BUILD)/neon_helper.o
+QEMU_OBJS = $(QEMU_DIR_BUILD)/exec.o $(QEMU_DIR_BUILD)/translate-all.o $(QEMU_DIR_BUILD)/cpu-exec.o $(QEMU_DIR_BUILD)/translate.o $(QEMU_DIR_BUILD)/fpu/softfloat.o $(QEMU_DIR_BUILD)/op_helper.o $(QEMU_DIR_BUILD)/helper.o $(QEMU_DIR_BUILD)/disas.o $(QEMU_DIR_BUILD)/i386-dis.o $(QEMU_DIR_BUILD)/arm-dis.o $(QEMU_DIR_BUILD)/tcg/tcg.o $(QEMU_DIR_BUILD)/iwmmxt_helper.o $(QEMU_DIR_BUILD)/neon_helper.o
+X49GP_LDFLAGS =
+X49GP_LIBS = $(QEMU_OBJS)
 endif
 QEMU_INCDIR=$(QEMU_DIR)
 QEMU_INC=-I$(QEMU_INCDIR)/target-arm -I$(QEMU_INCDIR) -I$(QEMU_INCDIR)/fpu -I$(QEMU_INCDIR)/arm-softmmu
@@ -102,14 +103,14 @@ CC += $(shell if [ "`uname -m`" = "sparc64" -o "`uname -m`" = "sun4u" ]; then ec
 
 COCOA_LIBS=$(shell if [ "`uname -s`" = "Darwin" ]; then echo "-F/System/Library/Frameworks -framework Cocoa -framework IOKit"; fi)
 
-CFLAGS = -O2 -Wall $(DEBUG) $(INCLUDES) $(DEFINES)
+CFLAGS = -O2 -Wall -Werror $(DEBUG) $(INCLUDES) $(DEFINES) -Wno-error=deprecated-declarations
 LDFLAGS = $(DEBUG) $(X49GP_LDFLAGS) $(GDB_LDFLAGS)
 LDLIBS = $(X49GP_LIBS) $(GDB_LIBS) $(COCOA_LIBS)
 
 MAKEDEPEND = $(CC) -MM
 
 CFLAGS += $(shell pkg-config --cflags gtk+-2.0)
-LDFLAGS += $(shell pkg-config --libs gtk+-2.0)
+LDLIBS += $(shell pkg-config --libs gtk+-2.0) -lz -lm
 
 ifdef QEMU_OLD
 export MAKE MAKEDEPEND CC LD AR RANLIB CFLAGS LDFLAGS
@@ -171,7 +172,7 @@ ifdef QEMU_OLD
 $(TARGET): $(OBJS) $(VVFATOBJS) $(QEMU)/arm-softmmu/libqemu.a
 	$(CC) -Wl,--no-as-needed $(LDFLAGS) -o $@ $(OBJS) $(VVFATOBJS) $(LDLIBS)
 else
-$(TARGET): $(OBJS) $(VVFATOBJS) $(X49GP_LIBS)
+$(TARGET): $(OBJS) $(VVFATOBJS) $(QEMU_OBJS)
 	$(CC) -Wl,--no-as-needed $(LDFLAGS) -o $@ $(OBJS) $(VVFATOBJS) $(LDLIBS)
 endif
 
@@ -217,7 +218,6 @@ flash-noboot: $(FIRMWARE)
 	done; \
 	echo ""
 	@/bin/echo -n "$@: Copy firmware \"$(FIRMWARE)\" to "; expr 16 \* 1024
-	@dd if=hp49g-u.bin of=$@ bs=16 seek=1024 conv=notrunc 2>/dev/null
 	@dd if=$(FIRMWARE) of=$@ bs=16 seek=1024 conv=notrunc 2>/dev/null
 	@/bin/echo -n "$@: Set copyright \"$(COPYRIGHT)\" at "; expr 16 \* 1024
 	@/bin/echo -n "$(COPYRIGHT)" >copyright
@@ -246,26 +246,31 @@ sim: dummy
 
 ifdef QEMU_OLD
 $(QEMU): $(QEMU)/config-host.h dummy
-	$(QEMUMAKE) -C $@
+	+$(QEMUMAKE) -C $@
 
 $(QEMU)/config-host.h: $(QEMUSRC)
 	cd qemu; ./prepare.sh
-	make -C . all
+	$(MAKE) -C . all
 
 $(QEMU)/arm-softmmu/%.o: $(QEMU)/%.c
-	$(QEMUMAKE) BASE_CFLAGS=-DX49GP -C $(QEMU)/arm-softmmu $(shell basename $@)
+	+$(QEMUMAKE) BASE_CFLAGS=-DX49GP -C $(QEMU)/arm-softmmu $(shell basename $@)
 else
 $(QEMU)/config-host.h: $(QEMUSRC)
-	( cd $(QEMU); \
+	+( cd $(QEMU); \
 	./configure-small --extra-cflags=-DX49GP; \
 	$(QEMUMAKE) -f Makefile-small )
 
-$(QEMU)/arm-softmmu/%.o: $(QEMU)/%.c
-	$(QEMUMAKE) -C $(QEMU) -f Makefile-small
+$(QEMU_OBJS): _dir_qemu
+
+_dir_qemu: dummy
+	+$(QEMUMAKE) -C $(QEMU) -f Makefile-small
 endif
 
 %.o: %.c
 	$(CC) $(CFLAGS) -o $@ -c $<
+
+block-vvfat.o: block-vvfat.c
+	$(CC) $(CFLAGS) -fno-aggressive-loop-optimizations -o $@ -c $<
 
 ifdef QEMU_OLD
 clean-libs:
